@@ -3,7 +3,7 @@ from __future__ import annotations
 import streamlit as st
 
 from tools.finance_dashboard import render_personal_finance_dashboard
-from tools.ui_theme_darkgreen import render_finance_theme_darkgreen
+from tools.ui_theme_dark import render_finance_theme_dark
 
 st.set_page_config(
     page_title="Personal Finance Dashboard",
@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 def main():
-    render_finance_theme_darkgreen()
+    render_finance_theme_dark()
     render_personal_finance_dashboard()
 
 
