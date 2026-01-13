@@ -1,15 +1,15 @@
 [theme]
 base = "dark"
 
-# Accent — restrained, confident
-primaryColor = "#22C55E"            # muted terminal green
+# Accent — subtle, modern (not loud)
+primaryColor = "#6366F1"               # soft indigo
 
-# App canvas
-backgroundColor = "#0B0F1A"         # near-black navy
-secondaryBackgroundColor = "#111827" # dark slate panels
+# App background
+backgroundColor = "#0E1117"            # modern near-black
+secondaryBackgroundColor = "#161B22"   # cards / panels
 
 # Text
-textColor = "#E5E7EB"               # soft off-white
+textColor = "#E6EDF3"                  # GitHub dark-style white
 
 # Typography
 font = "sans serif"
@@ -19,6 +19,3 @@ toolbarMode = "minimal"
 
 [browser]
 gatherUsageStats = false
-
-[theme]
-base = "light"
