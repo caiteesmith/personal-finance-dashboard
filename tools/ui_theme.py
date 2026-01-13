@@ -1,110 +1,75 @@
-import streamlit as st 
+st.markdown(
+    """
+    <style>
+      /* ---------- App canvas ---------- */
+      .stApp {
+        background:
+          radial-gradient(1000px 500px at 10% 0%, rgba(34,197,94,.10), transparent 55%),
+          radial-gradient(900px 450px at 90% 10%, rgba(99,102,241,.08), transparent 55%),
+          linear-gradient(180deg, #0B0F1A 0%, #020617 100%);
+      }
 
-def render_finance_theme():
-    st.markdown(
-        """
-        <style>
-          /* ---------- App canvas ---------- */
-          .stApp {
-            background: radial-gradient(1200px 600px at 10% 0%, rgba(99,102,241,.10), transparent 60%),
-                        radial-gradient(1000px 500px at 90% 10%, rgba(16,185,129,.10), transparent 55%),
-                        linear-gradient(180deg, #FBFCFE 0%, #F7F8FB 100%);
-          }
+      /* ---------- Containers / cards ---------- */
+      div[data-testid="stExpander"] > details,
+      div[data-testid="metric-container"],
+      div[data-testid="stDataFrame"] {
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(17,24,39,.85);
+        box-shadow: 0 12px 32px rgba(0,0,0,.45);
+      }
 
-          /* ---------- Typography ---------- */
-          html, body, [class*="css"]  {
-            font-feature-settings: "ss01" 1, "cv02" 1;
-          }
+      /* ---------- Metrics ---------- */
+      div[data-testid="metric-container"] label {
+        color: #9CA3AF;
+        letter-spacing: .02em;
+      }
+      div[data-testid="metric-container"] [data-testid="stMetricValue"] {
+        color: #E5E7EB;
+        font-weight: 600;
+      }
 
-          /* ---------- Page header spacing ---------- */
-          .block-container {
-            padding-top: 2.25rem;
-            padding-bottom: 2.25rem;
-            max-width: 1200px;
-          }
+      /* ---------- Tabs ---------- */
+      button[data-baseweb="tab"] {
+        border-radius: 999px !important;
+        background: rgba(255,255,255,.04) !important;
+        border: 1px solid rgba(255,255,255,.06) !important;
+        margin-right: .35rem;
+      }
+      button[data-baseweb="tab"][aria-selected="true"] {
+        background: rgba(34,197,94,.15) !important;
+        border-color: rgba(34,197,94,.35) !important;
+      }
 
-          /* ---------- Cards (expanders / containers) ---------- */
-          div[data-testid="stExpander"] > details {
-            border-radius: 18px;
-            border: 1px solid rgba(15, 23, 42, .08);
-            background: rgba(255,255,255,.82);
-            box-shadow: 0 10px 28px rgba(15, 23, 42, .06);
-            overflow: hidden;
-          }
-          div[data-testid="stExpander"] summary {
-            padding: .85rem 1rem;
-            font-weight: 600;
-          }
+      /* ---------- Inputs ---------- */
+      .stTextInput input,
+      .stNumberInput input,
+      .stSelectbox div[data-baseweb="select"] > div {
+        border-radius: 14px !important;
+        background-color: #020617 !important;
+        border: 1px solid rgba(255,255,255,.08) !important;
+      }
 
-          /* ---------- Metric cards ---------- */
-          div[data-testid="metric-container"] {
-            border-radius: 18px;
-            border: 1px solid rgba(15, 23, 42, .08);
-            background: rgba(255,255,255,.82);
-            box-shadow: 0 10px 28px rgba(15, 23, 42, .06);
-            padding: 14px 14px 10px 14px;
-          }
-          div[data-testid="metric-container"] label {
-            font-size: 0.85rem;
-            opacity: .85;
-          }
-          div[data-testid="metric-container"] [data-testid="stMetricValue"] {
-            font-size: 1.6rem;
-            line-height: 1.1;
-          }
+      /* ---------- Buttons ---------- */
+      button[kind="primary"] {
+        border-radius: 999px !important;
+        background: linear-gradient(180deg, #22C55E, #16A34A);
+        box-shadow: 0 10px 30px rgba(34,197,94,.35);
+      }
 
-          /* ---------- Tabs ---------- */
-          button[data-baseweb="tab"] {
-            border-radius: 999px !important;
-            margin-right: .35rem;
-            padding: .4rem .85rem;
-          }
-          button[data-baseweb="tab"][aria-selected="true"] {
-            background: rgba(99,102,241,.12) !important;
-            border: 1px solid rgba(99,102,241,.25) !important;
-          }
+      /* ---------- Sidebar ---------- */
+      section[data-testid="stSidebar"] {
+        background: rgba(2,6,23,.85);
+        border-right: 1px solid rgba(255,255,255,.08);
+      }
 
-          /* ---------- Inputs ---------- */
-          .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div {
-            border-radius: 14px !important;
-          }
-
-          /* ---------- Buttons ---------- */
-          button[kind="primary"] {
-            border-radius: 999px !important;
-            padding: .55rem 1rem !important;
-            box-shadow: 0 10px 24px rgba(99,102,241,.18);
-          }
-          button[kind="secondary"] {
-            border-radius: 999px !important;
-          }
-
-          /* ---------- Data editor / tables ---------- */
-          div[data-testid="stDataFrame"] {
-            border-radius: 18px;
-            border: 1px solid rgba(15, 23, 42, .08);
-            background: rgba(255,255,255,.82);
-            box-shadow: 0 10px 28px rgba(15, 23, 42, .06);
-            overflow: hidden;
-          }
-
-          /* ---------- Section dividers ---------- */
-          hr {
-            margin: 1.25rem 0;
-            border: none;
-            height: 1px;
-            background: rgba(15, 23, 42, .10);
-          }
-
-          /* ---------- Sidebar (optional, but looks nice) ---------- */
-          section[data-testid="stSidebar"] {
-            background: rgba(255,255,255,.70);
-            border-right: 1px solid rgba(15, 23, 42, .08);
-          }
-          section[data-testid="stSidebar"] .block-container {
-            padding-top: 1.25rem;
-          }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+      /* ---------- Dividers ---------- */
+      hr {
+        border: none;
+        height: 1px;
+        background: rgba(255,255,255,.08);
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)

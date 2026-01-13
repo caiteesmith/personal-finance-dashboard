@@ -1,26 +1,21 @@
 [theme]
-base = "light"
+base = "dark"
 
-# Brand / accent
-primaryColor = "#6366F1"              # indigo-500 vibe
+# Accent — restrained, confident
+primaryColor = "#22C55E"            # muted terminal green
 
 # App canvas
-backgroundColor = "#F7F8FB"           # soft light gray-blue
-secondaryBackgroundColor = "#FFFFFF"  # cards / panels
+backgroundColor = "#0B0F1A"         # near-black navy
+secondaryBackgroundColor = "#111827" # dark slate panels
 
 # Text
-textColor = "#0F172A"                 # slate-900
+textColor = "#E5E7EB"               # soft off-white
 
 # Typography
 font = "sans serif"
 
-[server]
-# Helps if you're embedding / deploying behind proxies sometimes
-enableCORS = false
-enableXsrfProtection = true
+[client]
+toolbarMode = "minimal"
 
 [browser]
 gatherUsageStats = false
-
-[client]
-toolbarMode = "minimal"
