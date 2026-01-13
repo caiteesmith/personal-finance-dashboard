@@ -54,7 +54,7 @@ Useful for backups, deeper analysis, or importing somewhere else.
 
 ### Emergency Minimum
 - Fixed expenses  
-- + Essential variable expenses (auto-detected by category name)  
-- + Minimum debt payments  
+- Essential variable expenses (auto-detected by category name)  
+- Minimum debt payments  
 
 > The emergency minimum is intentionally conservative. It represents survival-level spending, not comfort, so you can plan with reality rather than optimism.
