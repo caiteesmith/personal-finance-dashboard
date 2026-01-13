@@ -292,72 +292,76 @@ def render_personal_finance_dashboard():
 
     emergency_minimum_monthly = fixed_total + essential_variable + debt_minimums
 
+    st.markdown(
+        """
+        <style>
+        /* Style ONLY the bordered container that contains our anchor */
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(#pf-summary-card) {
+            background: rgba(15, 26, 22, 0.85) !important;
+            border: 1px solid rgba(230, 240, 236, 0.16) !important;
+            border-radius: 18px !important;
+            padding: 14px 14px 8px 14px !important;
+        }
+
+        /* Make the Summary title feel “hero” */
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(#pf-summary-card) h3 {
+            margin-top: 0.1rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+
+        /* Slightly elevate metrics inside the summary card */
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(#pf-summary-card) div[data-testid="metric-container"] {
+            background: rgba(22, 32, 28, 0.65) !important;
+            border: 1px solid rgba(230, 240, 236, 0.10) !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     with right:
-        # --- Summary Card ---
-        st.markdown("#### Summary")
+        with st.container(border=True):
+            st.markdown('<div id="pf-summary-card"></div>', unsafe_allow_html=True)
 
-        st.markdown(
-            """
-            <div style="
-                background: rgba(15, 26, 22, 0.85);
-                border: 1px solid rgba(230, 240, 236, 0.14);
-                border-radius: 16px;
-                padding: 16px 16px 6px 16px;
-                margin-top: 8px;
-                margin-bottom: 14px;
-            ">
-            """,
-            unsafe_allow_html=True,
-        )
+            st.markdown("### Summary")
 
-        # Top row (most important)
-        s1, s2 = st.columns([1, 1], gap="medium")
-        with s1:
-            st.metric(
-                "Net Income (monthly)",
-                _money(net_income),
-                help="If you selected gross income, this is estimated after tax.",
-            )
-            if income_is == "Gross (before tax)" and tax_rate > 0:
-                st.metric("Estimated Taxes (monthly)", _money(est_tax))
+            top_l, top_r = st.columns(2, gap="medium")
+            with top_l:
+                st.metric(
+                    "Net Income (monthly)",
+                    _money(net_income),
+                    help="If you selected gross income, this is estimated after tax.",
+                )
+                if income_is == "Gross (before tax)" and tax_rate > 0:
+                    st.metric("Estimated Taxes (monthly)", _money(est_tax))
 
-        with s2:
-            st.metric("Left Over (monthly)", _money(remaining))
+            with top_r:
+                st.metric("Left Over (monthly)", _money(remaining))
 
-        # Second row (supporting totals)
-        s3, s4 = st.columns([1, 1], gap="medium")
-        with s3:
-            st.metric("Total Expenses (monthly)", _money(expenses_total))
-        with s4:
-            st.metric("Saving / Investing (monthly)", _money(saving_total))
+            mid_l, mid_r = st.columns(2, gap="medium")
+            with mid_l:
+                st.metric("Total Expenses (monthly)", _money(expenses_total))
+            with mid_r:
+                st.metric("Saving / Investing (monthly)", _money(saving_total))
 
-        # Safe-to-spend (still useful, but visually secondary)
-        safe_weekly = remaining / 4.33
-        safe_daily = remaining / 30.4
+            safe_weekly = remaining / 4.33
+            safe_daily = remaining / 30.4
 
-        s5, s6 = st.columns([1, 1], gap="medium")
-        with s5:
-            st.metric(
-                "Safe-to-spend (weekly)",
-                _money(safe_weekly),
-                help="Left over divided by ~4.33 weeks per month.",
-            )
-        with s6:
-            st.metric(
-                "Safe-to-spend (daily)",
-                _money(safe_daily),
-                help="Left over divided by ~30.4 days per month.",
-            )
+            bot_l, bot_r = st.columns(2, gap="medium")
+            with bot_l:
+                st.metric("Safe-to-spend (weekly)", _money(safe_weekly))
+            with bot_r:
+                st.metric("Safe-to-spend (daily)", _money(safe_daily))
 
-        # Status messaging
-        if remaining < 0:
-            st.error("You’re budgeting more than you’re bringing in this month.")
-        elif remaining < 200:
-            st.warning("This month is very tight — you don’t have much buffer.")
-        else:
-            st.success("You’ve got some breathing room this month.")
+            if remaining < 0:
+                st.error("You’re budgeting more than you’re bringing in this month.")
+            elif remaining < 200:
+                st.warning("This month is very tight — you don’t have much buffer.")
+            else:
+                st.success("You’ve got some breathing room this month.")
 
-        st.markdown("</div>", unsafe_allow_html=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
 
     st.divider()
     st.subheader("🆘 Emergency Minimum (Assumption-Based)")
