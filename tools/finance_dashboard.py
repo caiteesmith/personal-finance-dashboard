@@ -325,13 +325,15 @@ def render_personal_finance_dashboard():
     e3.metric("6 months", _money(emergency_minimum_monthly * 6))
     e4.metric("12 months", _money(emergency_minimum_monthly * 12))
 
-    st.caption("Your emergency minimum covers:")
-    st.markdown(
-        f"""
-        • **Fixed bills** (housing, insurance, phone): {_money(fixed_total)}  
-        • **Essentials** (groceries, utilities, transportation): {_money(essential_variable)}  
-        • **Debt payments** you must make: {_money(debt_minimums)}
-        """
+    st.write("Your emergency minimum covers:")
+    st.write(
+        f"• **Fixed bills** (housing, insurance, phone): {_money(fixed_total)}"
+    )
+    st.write(
+        f"• **Essentials** (groceries, utilities, transportation): {_money(essential_variable)}"
+    )
+    st.write(
+        f"• **Debt payments** you must make: {_money(debt_minimums)}"
     )
 
     st.divider()
