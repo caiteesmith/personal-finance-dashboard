@@ -1,7 +1,26 @@
 [theme]
 base = "light"
-primaryColor = "#C9D7E3"
-backgroundColor = "#FCFAF9"
-secondaryBackgroundColor = "#F4F1EF"
-textColor = "#2C2C2C"
+
+# Brand / accent
+primaryColor = "#6366F1"              # indigo-500 vibe
+
+# App canvas
+backgroundColor = "#F7F8FB"           # soft light gray-blue
+secondaryBackgroundColor = "#FFFFFF"  # cards / panels
+
+# Text
+textColor = "#0F172A"                 # slate-900
+
+# Typography
 font = "sans serif"
+
+[server]
+# Helps if you're embedding / deploying behind proxies sometimes
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
