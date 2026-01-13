@@ -185,7 +185,7 @@ def render_personal_finance_dashboard():
 
     liabilities_df = st.session_state["pf_liabilities_df"]
 
-    st.subheader("Monthly Cash Flow")
+    st.subheader("Your Monthly Cash Flow")
 
     left, right = st.columns([1.1, 0.9], gap="large")
 
@@ -261,7 +261,7 @@ def render_personal_finance_dashboard():
 
     remaining = net_income - expenses_total - saving_total
 
-    # ---- Emergency Minimum (assumption-based) ----
+    # ---- Emergency Minimum ----
     # All fixed expenses + essential variable categories + debt minimum payments
     ESSENTIAL_VARIABLE_KEYWORDS = [
         # groceries / food at home
@@ -325,7 +325,7 @@ def render_personal_finance_dashboard():
         with st.container(border=True):
             st.markdown('<div id="pf-summary-card"></div>', unsafe_allow_html=True)
 
-            st.markdown("### Summary")
+            st.markdown("### Your Summary")
 
             top_l, top_r = st.columns(2, gap="medium")
             with top_l:
@@ -366,11 +366,7 @@ def render_personal_finance_dashboard():
             st.markdown("</div>", unsafe_allow_html=True)
 
     st.divider()
-    st.subheader("🆘 Emergency Minimum (Assumption-Based)")
-    st.caption(
-        "Estimated minimum monthly amount needed if income stops: "
-        "Fixed expenses + utilities/groceries + debt minimum payments (auto-detected by name)."
-    )
+    st.subheader("🆘 Your Emergency Minimum")
 
     e1, e2, e3, e4 = st.columns(4, gap="large")
     e1.metric("Emergency Minimum (monthly)", _money(emergency_minimum_monthly))
@@ -380,7 +376,7 @@ def render_personal_finance_dashboard():
 
     st.write("Your emergency minimum covers:")
     st.write(
-        f"• **Fixed bills** (housing, insurance, phone): {_money(fixed_total)}"
+        f"• **Fixed bills** (everything in your fix expenses): {_money(fixed_total)}"
     )
     st.write(
         f"• **Essentials** (groceries, utilities, transportation): {_money(essential_variable)}"
@@ -392,7 +388,7 @@ def render_personal_finance_dashboard():
     st.divider()
 
     # ---- Net worth section ----
-    st.subheader("Net Worth")
+    st.subheader("Your Net Worth")
 
     a_col, l_col = st.columns([1, 1], gap="large")
 
@@ -433,8 +429,8 @@ def render_personal_finance_dashboard():
 
     st.divider()
 
-    # ---- Debt info (optional, extra nerdy) ----
-    st.subheader("Debt Details (optional)")
+    # ---- Debt info ----
+    st.subheader("Debt Details")
     st.caption("This doesn't affect net worth beyond the liability values — it's here for clarity and planning.")
 
     debt_df = st.data_editor(
@@ -455,8 +451,8 @@ def render_personal_finance_dashboard():
 
     st.divider()
 
-    # ---- Exports + snapshot ----
-    st.subheader("Export / Save Snapshot")
+    # ---- Exports & snapshot ----
+    st.subheader("Export/Save Snapshot")
 
     snapshot = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
