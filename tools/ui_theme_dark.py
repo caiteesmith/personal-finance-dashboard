@@ -1,4 +1,7 @@
-st.markdown(
+import streamlit as st
+
+def render_finance_theme_dark():
+  st.markdown(
     """
     <style>
       /* ---------- Cards ---------- */
