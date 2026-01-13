@@ -293,24 +293,71 @@ def render_personal_finance_dashboard():
     emergency_minimum_monthly = fixed_total + essential_variable + debt_minimums
 
     with right:
+        # --- Summary Card ---
         st.markdown("#### Summary")
-        st.metric("Net Income (monthly)", _money(net_income), help="If you selected gross income, this is estimated after tax.")
-        if income_is == "Gross (before tax)" and tax_rate > 0:
-            st.metric("Estimated Taxes (monthly)", _money(est_tax))
-        st.metric("Expenses (monthly)", _money(expenses_total))
-        st.metric("Saving / Investing (monthly)", _money(saving_total))
-        st.metric("Left Over (monthly)", _money(remaining))
-        safe_weekly = remaining / 4.33
-        st.metric("Safe-to-spend (weekly)", _money(safe_weekly), help="Left over divided by ~4.33 weeks per month.")
-        safe_daily = remaining / 30.4
-        st.metric("Safe-to-spend (daily)", _money(safe_daily), help="Left over divided by ~30.4 days per month.")
 
+        st.markdown(
+            """
+            <div style="
+                background: rgba(15, 26, 22, 0.85);
+                border: 1px solid rgba(230, 240, 236, 0.14);
+                border-radius: 16px;
+                padding: 16px 16px 6px 16px;
+                margin-top: 8px;
+                margin-bottom: 14px;
+            ">
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Top row (most important)
+        s1, s2 = st.columns([1, 1], gap="medium")
+        with s1:
+            st.metric(
+                "Net Income (monthly)",
+                _money(net_income),
+                help="If you selected gross income, this is estimated after tax.",
+            )
+            if income_is == "Gross (before tax)" and tax_rate > 0:
+                st.metric("Estimated Taxes (monthly)", _money(est_tax))
+
+        with s2:
+            st.metric("Left Over (monthly)", _money(remaining))
+
+        # Second row (supporting totals)
+        s3, s4 = st.columns([1, 1], gap="medium")
+        with s3:
+            st.metric("Total Expenses (monthly)", _money(expenses_total))
+        with s4:
+            st.metric("Saving / Investing (monthly)", _money(saving_total))
+
+        # Safe-to-spend (still useful, but visually secondary)
+        safe_weekly = remaining / 4.33
+        safe_daily = remaining / 30.4
+
+        s5, s6 = st.columns([1, 1], gap="medium")
+        with s5:
+            st.metric(
+                "Safe-to-spend (weekly)",
+                _money(safe_weekly),
+                help="Left over divided by ~4.33 weeks per month.",
+            )
+        with s6:
+            st.metric(
+                "Safe-to-spend (daily)",
+                _money(safe_daily),
+                help="Left over divided by ~30.4 days per month.",
+            )
+
+        # Status messaging
         if remaining < 0:
-            st.error("You're allocating more than you're bringing in (for this month).")
+            st.error("You’re budgeting more than you’re bringing in this month.")
         elif remaining < 200:
-            st.warning("Very tight margin. This month has basically no buffer.")
+            st.warning("This month is very tight — you don’t have much buffer.")
         else:
-            st.success("Nice! You've got breathing room.")
+            st.success("You’ve got some breathing room this month.")
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
     st.divider()
     st.subheader("🆘 Emergency Minimum (Assumption-Based)")
