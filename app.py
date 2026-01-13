@@ -11,23 +11,6 @@ st.set_page_config(
     layout="wide",
 )
 
-st.markdown(
-    """
-    <style>
-        div[data-testid="stExpander"] {
-            border-radius: 16px;
-            border: 1px solid #E6E9ED;
-            background-color: #F1F3F5;
-        }
-
-        button[kind="primary"] {
-            border-radius: 999px;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 def main():
     render_finance_theme_dark()
     render_personal_finance_dashboard()
