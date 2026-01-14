@@ -469,43 +469,76 @@ def render_personal_finance_dashboard():
     )
 
     # ---- Summary UI ----
+    def _section(title: str):
+        st.markdown(
+            f"<div style='font-size:0.85rem; letter-spacing:.06em; text-transform:uppercase; opacity:.70; margin: 0.2rem 0 0.6rem 0;'>{title}</div>",
+            unsafe_allow_html=True,
+        )
+
     with right:
+        st.markdown("### Summary")
+
+        # optional: tighter spacing inside right column
+        st.markdown(
+            """
+            <style>
+            /* tighten vertical whitespace in the summary column */
+            div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stMetric"]) {
+                margin-bottom: .35rem;
+            }
+            /* make metric labels slightly softer */
+            div[data-testid="stMetricLabel"] > div {
+                opacity: .80;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Income
         with st.container(border=True):
-            st.markdown("### Summary")
+            _section("Income")
+            c1, c2 = st.columns(2, gap="medium")
+            c1.metric("Net Income (monthly)", _money(net_income))
+            c2.metric("Total Income", _money(total_income))
 
-            # Income
-            st.markdown("#### Income")
-            i1, i2 = st.columns(2)
-            i1.metric("Net Income", _money(net_income))
-            i2.metric("Total Income", _money(total_income))
+        st.write("")  # spacing
 
-            # Outflows
-            st.markdown("#### Expenses")
-            o1, o2 = st.columns(2)
-            o1.metric("Living Expenses", _money(expenses_total))
-            o2.metric("Debt Payments", _money(total_monthly_debt_payments))
+        # Outflows
+        with st.container(border=True):
+            _section("Outflows")
+            c1, c2 = st.columns(2, gap="medium")
+            c1.metric("Living Expenses", _money(expenses_total))
+            c2.metric("Debt Payments", _money(total_monthly_debt_payments))
 
-            o3, o4 = st.columns(2)
-            o3.metric("Saving", _money(saving_total))
-            o4.metric("Investing", _money(investing_display))
+            c3, c4 = st.columns(2, gap="medium")
+            c3.metric("Saving", _money(saving_total))
+            c4.metric("Investing", _money(investing_display))
 
-            o5, _ = st.columns(2)
-            o5.metric("Total Expenses", _money(total_outflow))
+            c5, c6 = st.columns(2, gap="medium")
+            c5.metric("Total Outflows", _money(total_outflow))
+            c6.metric("Unallocated", _money(net_income - total_outflow))
 
-            # Remaining
-            st.markdown("#### Leftover")
-            r1, r2 = st.columns(2)
-            r1.metric("Monthly", _money(remaining))
-            r2.metric("Weekly", _money(remaining / 4.33))
+        st.write("")
 
-            r3, _ = st.columns(2)
-            r3.metric("Daily", _money(remaining / 30.4))
+        # Remaining
+        with st.container(border=True):
+            _section("Remaining")
+            c1, c2 = st.columns(2, gap="medium")
+            c1.metric("Monthly", _money(remaining))
+            c2.metric("Weekly", _money(remaining / 4.33))
 
-            # Net Worth
-            st.markdown("#### Net Worth")
-            n1, n2 = st.columns(2)
-            n1.metric("Net Worth", _money(net_worth))
-            n2.metric("Total Liabilities", _money(total_liabilities))
+            c3, _ = st.columns(2, gap="medium")
+            c3.metric("Daily", _money(remaining / 30.4))
+
+        st.write("")
+
+        # Net Worth
+        with st.container(border=True):
+            _section("Net Worth")
+            c1, c2 = st.columns(2, gap="medium")
+            c1.metric("Net Worth", _money(net_worth))
+            c2.metric("Total Liabilities", _money(total_liabilities))
 
     st.divider()
     st.subheader("🆘 Your Emergency Minimum")
