@@ -505,6 +505,20 @@ def render_personal_finance_dashboard():
     if net_income > 0:
         investing_rate_of_net = (investing_display / net_income) * 100
 
+    # ---- Needs / Wants / Save & Invest split ----
+    needs_total = fixed_total + essential_variable + total_monthly_debt_payments
+    wants_total = max(variable_total - essential_variable, 0.0)
+    save_invest_total = saving_total + investing_cashflow
+    unallocated_total = max(remaining, 0.0)
+
+    needs_pct = wants_pct = save_invest_pct = unallocated_pct = None
+
+    if net_income > 0:
+        needs_pct = (needs_total / net_income) * 100
+        wants_pct = (wants_total / net_income) * 100
+        save_invest_pct = (save_invest_total / net_income) * 100
+        unallocated_pct = max(0.0, 100 - (needs_pct + wants_pct + save_invest_pct))
+
     # -------------------------
     # VISUAL OVERVIEW
     # -------------------------
@@ -664,20 +678,38 @@ def render_personal_finance_dashboard():
                     )
 
         with st.container(border=True):
-            _section("Spending & Saving Split (Needs/Wants/Save & Invest)")
+            _section("Spending & Saving Split")
 
-            if net_income <= 0:
-                st.info("Add income to see your split.")
-            else:
-                p1, p2, p3 = st.columns(3, gap="medium")
-                p1.metric("Needs", _pct(needs_pct), help=f"{_money(needs_amount)} / {_money(net_income)}")
-                p2.metric("Wants", _pct(wants_pct), help=f"{_money(wants_amount)} / {_money(net_income)}")
-                p3.metric("Save & Invest", _pct(save_invest_pct), help=f"{_money(save_invest_amount)} / {_money(net_income)}")
+            c1, c2, c3, c4 = st.columns(4, gap="medium")
 
-                st.caption(
-                    "Rule of thumb: ~50% needs, ~30% wants, ~20% save & invest. "
-                    "This is guidance, not a grade."
-                )
+            c1.metric(
+                "Needs",
+                _pct(needs_pct),
+                help="Required spending: housing, utilities, groceries, insurance, and minimum debt payments."
+            )
+
+            c2.metric(
+                "Wants",
+                _pct(wants_pct),
+                help="Discretionary spending: dining out, subscriptions, shopping, and non-essentials."
+            )
+
+            c3.metric(
+                "Save & Invest",
+                _pct(save_invest_pct),
+                help="Money intentionally set aside for savings, investing, and retirement."
+            )
+
+            c4.metric(
+                "Unallocated",
+                _pct(unallocated_pct),
+                help="Income not yet assigned. Often used as buffer, flexibility, or future decisions."
+            )
+
+            st.caption(
+                "Rule of thumb: ~50% needs, ~30% wants, ~20% save & invest. "
+                "Unallocated is normal and often intentional."
+            )
 
         with st.container(border=True):
             _section("Net Worth & Liabilities")
