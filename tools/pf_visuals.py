@@ -221,32 +221,33 @@ def render_visual_overview(
 # DEBT BURDEN INDICATOR
 # ------------------------------
 def debt_burden_indicator(*, net_income: float, debt_payments: float):
-    """
-    Shows monthly debt burden as debt_payments / net_income.
-    Uses net income because it's most directly tied to cashflow reality.
-    """
     net_income = float(net_income or 0.0)
     debt_payments = max(float(debt_payments or 0.0), 0.0)
 
-    ratio = 0.0
-    if net_income > 0:
-        ratio = debt_payments / net_income
-
+    ratio = (debt_payments / net_income) if net_income > 0 else 0.0
     pct = ratio * 100.0
 
     fig = go.Figure(
         go.Indicator(
             mode="gauge+number",
             value=pct,
-            number={"suffix": "%", "valueformat": ".1f"},
-            title={"text": "Debt Burden (Payments / Net Income)"},
+            number={
+                "suffix": "%", 
+                "valueformat": ".1f",
+                "font": {"size": 34},
+            },
+            title=None,
+            domain={"x": [0, 1], "y": [0, 1]},
             gauge={
-                "axis": {"range": [0, 60]},  # cap for readability; 60% is very high
+                "axis": {
+                    "range": [0, 60],
+                    "tickfont": {"size": 12},
+                },
                 "bar": {"thickness": 0.25},
                 "steps": [
-                    {"range": [0, 15]},   # low
-                    {"range": [15, 30]},  # moderate
-                    {"range": [30, 60]},  # high
+                    {"range": [0, 15]},
+                    {"range": [15, 30]},
+                    {"range": [30, 60]},
                 ],
                 "threshold": {
                     "line": {"width": 4},
@@ -258,8 +259,8 @@ def debt_burden_indicator(*, net_income: float, debt_payments: float):
     )
 
     fig.update_layout(
-        height=220,
-        margin=dict(l=20, r=20, t=55, b=20),
+        height=190,
+        margin=dict(l=10, r=10, t=10, b=10),
     )
 
     return fig, pct
