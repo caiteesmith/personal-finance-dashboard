@@ -391,16 +391,22 @@ def render_personal_finance_dashboard():
     saving_total = _sum_df(saving_df, "Monthly Amount")
     investing_total = _sum_df(investing_df, "Monthly Amount")
 
-    # --- Add manual retirement + company match to investing ---
-    manual_retirement = float(st.session_state.get("pf_manual_retirement", 0.0) or 0.0)
-    company_match = float(st.session_state.get("pf_manual_match", 0.0) or 0.0)
+    investing_display = investing_total
+    investing_cashflow = investing_total
 
-    manual_investing_total = manual_retirement + company_match
+    manual_retirement = 0.0
+    company_match = 0.0
+    manual_investing_total = 0.0
 
-    investing_total_with_manual = investing_total + manual_investing_total
-    total_saving_and_investing = saving_total + investing_total_with_manual
+    if income_is == "Gross (before tax)" and st.session_state.get("pf_gross_mode") == "Manual deductions":
+        manual_retirement = float(st.session_state.get("pf_manual_retirement", 0.0) or 0.0)
+        company_match = float(st.session_state.get("pf_manual_match", 0.0) or 0.0)
 
-    remaining = net_income - expenses_total - total_saving_and_investing
+        manual_investing_total = manual_retirement + company_match
+        investing_display = investing_total + manual_investing_total
+
+    total_saving_and_investing_cashflow = saving_total + investing_cashflow
+    remaining = net_income - expenses_total - total_saving_and_investing_cashflow
 
     total_assets = _sum_df(assets_df, "Value")
     total_liabilities = _sum_df(liabilities_df, "Value")
@@ -479,7 +485,7 @@ def render_personal_finance_dashboard():
             with r3_l:
                 st.metric("Saving (monthly)", _money(saving_total))
             with r3_r:
-                st.metric("Investing (monthly)", _money(investing_total_with_manual))
+                st.metric("Investing (monthly)", _money(investing_display))
 
             safe_weekly = remaining / 4.33
             safe_daily = remaining / 30.4
@@ -629,10 +635,10 @@ def render_personal_finance_dashboard():
             "variable_expenses": float(variable_total),
             "total_expenses": float(expenses_total),
             "saving_monthly": float(saving_total),
-            "investing_monthly": float(investing_total_with_manual),
+            "investing_monthly": float(investing_display),
             "investing_manual_retirement": float(manual_retirement),
             "investing_company_match": float(company_match),
-            "saving_and_investing_total": float(total_saving_and_investing),
+            "saving_and_investing_cashflow_total": float(total_saving_and_investing_cashflow),
             "left_over": float(remaining),
             "safe_to_spend_weekly": float(remaining / 4.33),
             "safe_to_spend_daily": float(remaining / 30.4),
