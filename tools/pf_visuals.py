@@ -175,7 +175,7 @@ def render_visual_overview(
     variable_df: pd.DataFrame,
     debt_df: pd.DataFrame,
 ):
-    st.subheader("Visual Overview")
+    st.subheader("How Your Money Looks This Month")
 
     v1, v2, v3 = st.columns(3, gap="large")
 
@@ -193,12 +193,12 @@ def render_visual_overview(
 
     with v2:
         st.plotly_chart(
-            debt_payments_vs_balances(debt_df),
+            top_expenses_bar(fixed_df, variable_df),
             width="stretch",
         )
 
     with v3:
         st.plotly_chart(
-            top_expenses_bar(fixed_df, variable_df),
+            debt_payments_vs_balances(debt_df),
             width="stretch",
         )

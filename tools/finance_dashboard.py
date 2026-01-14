@@ -510,8 +510,8 @@ def render_personal_finance_dashboard():
         with st.container(border=True):
             _section("Income")
             c1, c2 = st.columns(2, gap="medium")
-            c1.metric("Net Income (monthly)", _money(net_income))
-            c2.metric("Total Income", _money(total_income))
+            c1.metric("Net Income", _money(net_income))
+            c2.metric("Gross Income", _money(total_income))
 
         st.write("")
 
