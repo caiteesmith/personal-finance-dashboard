@@ -473,20 +473,19 @@ def render_personal_finance_dashboard():
     with right:
         with st.container(border=True):
             st.markdown('<div id="pf-summary-card"></div>', unsafe_allow_html=True)
-            st.markdown("### Your Summary")
+            st.markdown("### Your Monthly Summary")
 
             safe_weekly = remaining / 4.33
             safe_daily = remaining / 30.4
 
-            # HERO
             h1, h2 = st.columns(2, gap="medium")
-            h1.metric("Net Income (monthly)", _money(net_income))
-            h2.metric("Total Outflow (monthly)", _money(total_outflow))
+            h1.metric("Net Income", _money(net_income))
+            h2.metric("Planned Spending", _money(total_outflow))
 
             st.markdown("#### Cash Buffer")
             r1, r2 = st.columns(2, gap="medium")
-            r1.metric("Left Over (monthly)", _money(remaining))
-            r2.metric("Debt Payments (monthly)", _money(total_monthly_debt_payments))
+            r1.metric("Left Over", _money(remaining))
+            r2.metric("Debt Payments", _money(total_monthly_debt_payments))
 
             st.markdown("#### Safe to Spend")
             s1, s2 = st.columns(2, gap="medium")
@@ -495,8 +494,8 @@ def render_personal_finance_dashboard():
 
             st.markdown("#### Saving & Investing")
             si1, si2 = st.columns(2, gap="medium")
-            si1.metric("Saving (monthly)", _money(saving_total))
-            si2.metric("Investing (monthly)", _money(investing_display))
+            si1.metric("Saving", _money(saving_total))
+            si2.metric("Investing", _money(investing_display))
 
             st.markdown("#### Net Worth")
             nw1, nw2 = st.columns(2, gap="medium")
