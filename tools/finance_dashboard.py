@@ -216,12 +216,12 @@ def render_personal_finance_dashboard():
         with c3:
             income_is = st.selectbox(
                 "Income amounts are…",
-                ["Net (after tax)", "Gross (before tax and deductions)"],
+                ["Net (after tax)", "Gross (before tax)"],
                 key="pf_income_is",
             )
 
         # ---- Gross Breakdown ----
-        if income_is == "Gross (before tax and deductions)":
+        if income_is == "Gross (before tax)":
             st.subheader("Gross Income Breakdown")
             st.caption(
                 "Use this section only if you want to enter your income as gross, e.g. a paycheck breakdown. "
