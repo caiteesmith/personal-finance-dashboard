@@ -410,7 +410,10 @@ def render_personal_finance_dashboard():
         investing_display = investing_total + manual_investing_total
 
     total_saving_and_investing_cashflow = saving_total + investing_cashflow
-    remaining = net_income - expenses_total - total_saving_and_investing_cashflow
+    total_monthly_debt_payments = _sum_df(debt_df, "Monthly Payment")
+
+    total_outflow = expenses_total + total_saving_and_investing_cashflow + total_monthly_debt_payments
+    remaining = net_income - total_outflow
 
     total_assets = _sum_df(assets_df, "Value")
     total_liabilities = _sum_df(liabilities_df, "Value")
@@ -480,7 +483,7 @@ def render_personal_finance_dashboard():
 
             r2_l, r2_r = st.columns(2, gap="medium")
             with r2_l:
-                st.metric("Total Expenses (monthly)", _money(expenses_total))
+                st.metric("Total Expenses (monthly)", _money(total_outflow))
             with r2_r:
                 st.metric("Total Liabilities", _money(total_liabilities))
 
@@ -636,6 +639,7 @@ def render_personal_finance_dashboard():
             "net_income": float(net_income),
             "fixed_expenses": float(fixed_total),
             "variable_expenses": float(variable_total),
+            "debt_payments_monthly": float(total_monthly_debt_payments),
             "total_expenses": float(expenses_total),
             "saving_monthly": float(saving_total),
             "investing_monthly": float(investing_display),
