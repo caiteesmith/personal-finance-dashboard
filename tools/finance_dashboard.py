@@ -588,9 +588,10 @@ def render_personal_finance_dashboard():
             _section("Remaining (After Bills, Saving & Investing)")
             c1, c2 = st.columns(2, gap="medium")
             c1.metric("Monthly", _money(remaining))
-            c2.metric("Weekly", _money(remaining / 4.33))
-            c3, _ = st.columns(2, gap="medium")
-            c3.metric("Daily", _money(remaining / 30.4))
+            c2.metric("Biweekly", _money(remaining / 2.15))
+            c3, c4 = st.columns(2, gap="medium")
+            c3.metric("Weekly", _money(remaining / 4.33))
+            c4.metric("Daily", _money(remaining / 30.4))
 
             with st.expander("What You Can Do With the Remaining", expanded=False):
                 st.caption(
