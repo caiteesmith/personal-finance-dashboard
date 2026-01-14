@@ -280,8 +280,10 @@ def render_personal_finance_dashboard():
             )
             st.caption(
                 "Want to enter exact paycheck taxes and deductions? "
-                "You can do that in the Income Settings & Tax/Deduction Options section above."
+                "For paycheck-level accuracy (pre-tax 401k contributions, employer match, benefits, and taxes), "
+                "use the Income Settings & Tax/Deduction Options section above."
             )
+
             with tab_exp:
                 st.write("Split your expenses into fixed & variable so you can see what's flexible.")
 
