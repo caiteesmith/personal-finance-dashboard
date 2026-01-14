@@ -8,6 +8,7 @@ from typing import Dict, List
 
 import pandas as pd
 import streamlit as st
+import plotly.graph_objects as go
 import re
 
 # -------------------------
@@ -83,6 +84,64 @@ def _sanitize_editor_df(df: pd.DataFrame, expected_cols: List[str], numeric_cols
     df = df.reset_index(drop=True)
     return df
 
+def _cashflow_breakdown_chart(
+    *,
+    net_income: float,
+    living_expenses: float,
+    debt_payments: float,
+    saving: float,
+    investing_cashflow: float,
+):
+    """
+    Single stacked bar showing where monthly income goes.
+    - If spending exceeds income, shows 'Over budget' instead of negative remainder.
+    """
+    # Normalize negatives to avoid confusing stacks
+    net_income = float(net_income or 0.0)
+    living_expenses = max(float(living_expenses or 0.0), 0.0)
+    debt_payments = max(float(debt_payments or 0.0), 0.0)
+    saving = max(float(saving or 0.0), 0.0)
+    investing_cashflow = max(float(investing_cashflow or 0.0), 0.0)
+
+    total_outflow = living_expenses + debt_payments + saving + investing_cashflow
+    remaining = net_income - total_outflow
+
+    # If negative, show as "Over budget" instead of negative remainder
+    remainder_value = max(remaining, 0.0)
+    over_budget_value = max(-remaining, 0.0)
+
+    labels = ["Living expenses", "Debt payments", "Saving", "Investing", "Remaining"]
+    values = [living_expenses, debt_payments, saving, investing_cashflow, remainder_value]
+
+    if over_budget_value > 0:
+        labels.append("Over budget")
+        values.append(over_budget_value)
+
+    fig = go.Figure()
+
+    for label, val in zip(labels, values):
+        fig.add_trace(
+            go.Bar(
+                name=label,
+                y=[""],
+                x=[val],
+                orientation="h",
+                hovertemplate=f"{label}: %{{x:,.2f}}<extra></extra>",
+            )
+        )
+
+    fig.update_layout(
+        barmode="stack",
+        height=110,
+        margin=dict(l=10, r=10, t=10, b=10),
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="left", x=0),
+        xaxis=dict(title="", tickprefix="$", separatethousands=True),
+        yaxis=dict(title="", showticklabels=False),
+    )
+
+    return fig, total_outflow, remaining
+
 
 # -------------------------
 # Defaults
@@ -111,6 +170,7 @@ DEFAULT_VARIABLE = [
 DEFAULT_SAVING = [
     {"Bucket": "Emergency fund", "Monthly Amount": 0.0, "Notes": ""},
     {"Bucket": "Travel", "Monthly Amount": 0.0, "Notes": ""},
+    {"Bucket": "Fun Money", "Monthly Amount": 0.0, "Notes": ""},
     {"Bucket": "Cash savings", "Monthly Amount": 0.0, "Notes": ""},
 ]
 
@@ -414,6 +474,18 @@ def render_personal_finance_dashboard():
     total_outflow = expenses_total + total_saving_and_investing_cashflow + total_monthly_debt_payments
     remaining = net_income - total_outflow
 
+    st.markdown("#### Monthly Cash Flow Breakdown")
+
+    cashflow_fig, total_outflow_calc, remaining_calc = _cashflow_breakdown_chart(
+        net_income=net_income,
+        living_expenses=expenses_total,
+        debt_payments=total_monthly_debt_payments,
+        saving=saving_total,
+        investing_cashflow=investing_cashflow,
+    )
+
+    st.plotly_chart(cashflow_fig, use_container_width=True)
+
     total_assets = _sum_df(assets_df, "Value")
     total_liabilities = _sum_df(liabilities_df, "Value")
     net_worth = total_assets - total_liabilities
@@ -516,7 +588,7 @@ def render_personal_finance_dashboard():
             c4.metric("Investing", _money(investing_display))
 
             c5, c6 = st.columns(2, gap="medium")
-            c5.metric("Total Outflows", _money(total_outflow))
+            c5.metric("Total Expenses", _money(total_outflow))
             c6.metric("Unallocated", _money(net_income - total_outflow))
 
         st.write("")
