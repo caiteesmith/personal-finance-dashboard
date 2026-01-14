@@ -581,7 +581,7 @@ def render_personal_finance_dashboard():
                 help="Investing divided by total pre-tax income."
             )
         with st.container(border=True):
-            _section("Safe-to-Spend")
+            _section("Remaining (After Bills, Saving & Investing)")
             c1, c2 = st.columns(2, gap="medium")
             c1.metric("Monthly", _money(remaining))
             c2.metric("Weekly", _money(remaining / 4.33))
