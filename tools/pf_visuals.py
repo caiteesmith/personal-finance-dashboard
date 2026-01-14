@@ -5,7 +5,9 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
+# ------------------------------
 # CASHFLOW BREAKDOWN BAR CHART
+# ------------------------------
 def cashflow_breakdown_chart(
     *,
     net_income: float,
@@ -67,7 +69,9 @@ def cashflow_breakdown_chart(
 
     return fig, total_outflow, remaining
 
+# ------------------------------
 # SPENDING MIX DONUT CHART
+# ------------------------------
 def spending_mix_donut(expenses: float, debt: float, saving: float, investing: float, remaining: float):
     labels, values = [], []
 
@@ -98,7 +102,9 @@ def spending_mix_donut(expenses: float, debt: float, saving: float, investing: f
     )
     return fig
 
+# ------------------------------
 # TOP EXPENSES BAR CHART
+# ------------------------------
 def top_expenses_bar(fixed_df: pd.DataFrame, variable_df: pd.DataFrame):
     df = pd.concat(
         [fixed_df[["Expense", "Monthly Amount"]], variable_df[["Expense", "Monthly Amount"]]],
@@ -130,7 +136,9 @@ def top_expenses_bar(fixed_df: pd.DataFrame, variable_df: pd.DataFrame):
     )
     return fig
 
+# ------------------------------
 # DEBT PAYMENTS VS BALANCES BAR CHART
+# ------------------------------
 def debt_payments_vs_balances(debt_df: pd.DataFrame):
     df = debt_df.copy()
 
@@ -208,3 +216,120 @@ def render_visual_overview(
             debt_payments_vs_balances(debt_df),
             width="stretch",
         )
+
+# ------------------------------
+# DEBT BURDEN INDICATOR
+# ------------------------------
+def debt_burden_indicator(*, net_income: float, debt_payments: float):
+    """
+    Shows monthly debt burden as debt_payments / net_income.
+    Uses net income because it's most directly tied to cashflow reality.
+    """
+    net_income = float(net_income or 0.0)
+    debt_payments = max(float(debt_payments or 0.0), 0.0)
+
+    ratio = 0.0
+    if net_income > 0:
+        ratio = debt_payments / net_income
+
+    pct = ratio * 100.0
+
+    fig = go.Figure(
+        go.Indicator(
+            mode="gauge+number",
+            value=pct,
+            number={"suffix": "%", "valueformat": ".1f"},
+            title={"text": "Debt Burden (Payments / Net Income)"},
+            gauge={
+                "axis": {"range": [0, 60]},  # cap for readability; 60% is very high
+                "bar": {"thickness": 0.25},
+                "steps": [
+                    {"range": [0, 15]},   # low
+                    {"range": [15, 30]},  # moderate
+                    {"range": [30, 60]},  # high
+                ],
+                "threshold": {
+                    "line": {"width": 4},
+                    "thickness": 0.85,
+                    "value": pct,
+                },
+            },
+        )
+    )
+
+    fig.update_layout(
+        height=220,
+        margin=dict(l=20, r=20, t=55, b=20),
+    )
+
+    return fig, pct
+
+
+# ------------------------------
+# DEBT PAYOFF ORDER (Avalanche vs Snowball)
+# ------------------------------
+def debt_payoff_order_chart(debt_df: pd.DataFrame, *, strategy: str = "Avalanche (APR)"):
+    """
+    Ranks debts for payoff planning.
+
+    Avalanche: highest APR first
+    Snowball: smallest balance first
+
+    Requires columns: Debt, Balance, APR %
+    """
+    df = debt_df.copy()
+
+    needed = {"Debt", "Balance", "APR %"}
+    missing = [c for c in needed if c not in df.columns]
+    if missing:
+        st.warning(f"Payoff chart skipped: missing columns {missing}")
+        return go.Figure()
+
+    df["Balance"] = pd.to_numeric(df["Balance"], errors="coerce").fillna(0.0)
+    df["APR %"] = pd.to_numeric(df["APR %"], errors="coerce").fillna(0.0)
+
+    # Keep rows that have any useful info
+    df = df[(df["Balance"] > 0) | (df["APR %"] > 0)]
+    if df.empty:
+        return go.Figure()
+
+    if strategy == "Snowball (Balance)":
+        df = df.sort_values(["Balance", "APR %"], ascending=[True, False])
+        title = "Payoff Order (Snowball: Smallest Balance First)"
+        sort_key = "Balance"
+    else:
+        df = df.sort_values(["APR %", "Balance"], ascending=[False, True])
+        title = "Payoff Order (Avalanche: Highest APR First)"
+        sort_key = "APR %"
+
+    # take top N for readability
+    df = df.head(10)
+
+    # Bar = Balance, annotated with APR (or vice versa)
+    fig = go.Figure(
+        go.Bar(
+            x=df["Balance"],
+            y=df["Debt"],
+            orientation="h",
+            customdata=df["APR %"],
+            hovertemplate="%{y}<br>Balance: $%{x:,.0f}<br>APR: %{customdata:.2f}%<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        title=dict(text=title, x=0, xanchor="left", font=dict(size=16)),
+        height=320,
+        margin=dict(l=140, r=20, t=55, b=20),
+        xaxis=dict(tickprefix="$", separatethousands=True, title="Balance"),
+        yaxis=dict(autorange="reversed", title=""),
+    )
+
+    # If the user chose avalanche, add a small visual cue by showing APR text on bars
+    # (Plotly doesn't need colors to make this useful.)
+    fig.update_traces(
+        text=[f"{apr:.1f}%" for apr in df["APR %"]],
+        textposition="outside",
+        cliponaxis=False,
+    )
+
+    return fig

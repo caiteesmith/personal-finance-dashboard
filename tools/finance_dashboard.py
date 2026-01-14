@@ -1,5 +1,5 @@
 # =========================================
-# file: tools/personal_finance_dashboard.py
+# file: tools/finance_dashboard.py
 # =========================================
 from __future__ import annotations
 
@@ -10,8 +10,7 @@ import pandas as pd
 import re
 import streamlit as st
 
-from tools.pf_visuals import cashflow_breakdown_chart, render_visual_overview
-
+from tools.pf_visuals import cashflow_breakdown_chart, render_visual_overview, debt_burden_indicator, debt_payoff_order_chart
 
 # -------------------------
 # Helpers
@@ -165,7 +164,7 @@ DEFAULT_LIABILITIES = [
 def render_personal_finance_dashboard():
     st.title("💸 Personal Finance Dashboard")
     st.caption(
-        "A spreadsheet-style dashboard to track monthly cash flow + net worth. "
+        "A spreadsheet-style dashboard to track your personal monthly cash flow and net worth. "
         "Enter your numbers, click Save, and the tool does the math."
     )
 
@@ -439,19 +438,6 @@ def render_personal_finance_dashboard():
     total_retirement_contrib = employee_retirement + company_match
 
     # -------------------------
-    # SNAPSHOT CHART
-    # -------------------------
-    # st.subheader("This Month at a Glance")
-    # fig, _, _ = cashflow_breakdown_chart(
-    #     net_income=net_income,
-    #     living_expenses=expenses_total,
-    #     debt_payments=total_monthly_debt_payments,
-    #     saving=saving_total,
-    #     investing_cashflow=investing_cashflow,
-    # )
-    # st.plotly_chart(fig, width="stretch")
-
-    # -------------------------
     # VISUAL OVERVIEW
     # -------------------------
     render_visual_overview(
@@ -643,6 +629,32 @@ def render_personal_finance_dashboard():
             st.rerun()
 
     st.metric("Total Monthly Debt Payments", _money(total_monthly_debt_payments))
+
+    st.subheader("Debt Summary")
+
+    c1, c2 = st.columns([0.9, 1.1], gap="large")
+
+    with c1:
+        fig_burden, burden_pct = debt_burden_indicator(
+            net_income=net_income,
+            debt_payments=total_monthly_debt_payments,
+        )
+        st.plotly_chart(fig_burden, use_container_width=True)
+
+    with c2:
+        strategy = st.radio(
+            "Payoff strategy",
+            ["Avalanche (APR)", "Snowball (Balance)"],
+            horizontal=True,
+            key="pf_debt_strategy",
+        )
+        fig_order = debt_payoff_order_chart(st.session_state["pf_debt_df"], strategy=strategy)
+        st.plotly_chart(fig_order, use_container_width=True)
+
+    # Optional helper text (short + useful)
+    st.caption(
+        "Avalanche saves the most interest (highest APR first). Snowball builds momentum (smallest balance first)."
+    )
 
     st.divider()
 
