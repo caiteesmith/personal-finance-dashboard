@@ -116,6 +116,17 @@ def _safe_float(x, default=0.0) -> float:
         return float(default)
 
 
+def _dashboard_header(net_income, total_outflow, remaining, emergency_minimum_monthly, net_worth, debt_payments):
+    with st.container(border=True):
+        a, b, c, d, e, f = st.columns(6, gap="medium")
+        a.metric("Net", _money(net_income))
+        b.metric("Expenses", _money(total_outflow))
+        c.metric("Leftover", _money(remaining))
+        d.metric("Emergency Min", _money(emergency_minimum_monthly))
+        e.metric("Net Worth", _money(net_worth))
+        f.metric("Debt Min", _money(debt_payments))
+
+
 def _load_snapshot_into_state(snapshot: dict):
     """
     Loads snapshot data into st.session_state.
@@ -164,16 +175,6 @@ def _load_snapshot_into_state(snapshot: dict):
         ["Debt", "Balance", "APR %", "Monthly Payment", "Notes"],
         ["Balance", "APR %", "Monthly Payment"],
     )
-
-    def _dashboard_header(net_income, total_outflow, remaining, emergency_minimum_monthly, net_worth, debt_payments):
-        with st.container(border=True):
-            a, b, c, d, e, f = st.columns(6, gap="medium")
-            a.metric("Net", _money(net_income))
-            b.metric("Outflow", _money(total_outflow))
-            c.metric("Leftover", _money(remaining))
-            d.metric("Emergency Min", _money(emergency_minimum_monthly))
-            e.metric("Net Worth", _money(net_worth))
-            f.metric("Debt Min", _money(debt_payments))
 
 
 # -------------------------
@@ -274,6 +275,14 @@ def render_personal_finance_dashboard():
         st.session_state["pf_draft_other_ssi"] = _safe_float(gb.get("other_ssi", 0))
         st.session_state["pf_draft_match"] = _safe_float(gb.get("company_match", 0))
 
+        # Optional UX: if snapshot has any deductions, auto-enable toggle
+        any_deds = any(
+            float(_safe_float(gb.get(k, 0))) > 0
+            for k in ["taxes", "retirement_employee", "benefits", "other_ssi", "company_match"]
+        )
+        if "pf_use_paycheck_breakdown" not in st.session_state:
+            st.session_state["pf_use_paycheck_breakdown"] = bool(any_deds)
+
         # Clear pending import
         st.session_state["pf_has_pending_import"] = False
         st.session_state.pop("pf_pending_snapshot", None)
@@ -284,10 +293,19 @@ def render_personal_finance_dashboard():
     st.session_state.setdefault("pf_uploader_nonce", 0)
     st.session_state.setdefault("pf_last_import_sig", "")
 
+    st.title("💸 Personal Finance Dashboard")
+    st.caption(
+        "A spreadsheet-style dashboard to track your personal monthly cash flow and net worth. "
+        "Enter your numbers, click Save, and the tool does the math."
+    )
+
     # ---- Widget defaults ----
     st.session_state.setdefault("pf_month_label", datetime.now().strftime("%B %Y"))
     st.session_state.setdefault("pf_tax_rate", 0.0)
     st.session_state.setdefault("pf_income_is", "Net (after tax)")
+
+    # paycheck breakdown toggle (controls whether deductions are applied)
+    st.session_state.setdefault("pf_use_paycheck_breakdown", False)
 
     # Optional gross-income breakdown defaults
     st.session_state.setdefault("pf_gross_mode", "Estimate (tax rate)")
@@ -297,8 +315,11 @@ def render_personal_finance_dashboard():
     st.session_state.setdefault("pf_manual_benefits", 0.0)
     st.session_state.setdefault("pf_manual_other_ssi", 0.0)
 
-    # New: toggle for paycheck breakdown mode
-    st.session_state.setdefault("pf_use_gross_breakdown", False)
+    # Always read settings from session_state for calculations
+    month_label = st.session_state.get("pf_month_label", datetime.now().strftime("%B %Y"))
+    tax_rate = float(st.session_state.get("pf_tax_rate", 0.0) or 0.0)
+    income_is = st.session_state.get("pf_income_is", "Net (after tax)")
+    gross_mode = st.session_state.get("pf_gross_mode", "Estimate (tax rate)")
 
     # ---- Persisted tables ----
     _ensure_df("pf_income_df", DEFAULT_INCOME)
@@ -310,15 +331,8 @@ def render_personal_finance_dashboard():
     _ensure_df("pf_assets_df", DEFAULT_ASSETS)
     _ensure_df("pf_liabilities_df", DEFAULT_LIABILITIES)
 
-    # ---- Read settings from session_state for calculations ----
-    month_label = st.session_state.get("pf_month_label", datetime.now().strftime("%B %Y"))
-    tax_rate = float(st.session_state.get("pf_tax_rate", 0.0) or 0.0)
-    income_is = st.session_state.get("pf_income_is", "Net (after tax)")
-    gross_mode = st.session_state.get("pf_gross_mode", "Estimate (tax rate)")
-    use_paycheck_breakdown = bool(st.session_state.get("pf_use_gross_breakdown", False))
-
     # -------------------------
-    # CALCULATIONS (moved up so we can show a header + callouts early)
+    # CALCULATIONS (committed state only)
     # -------------------------
     income_df = st.session_state["pf_income_df"]
     fixed_df = st.session_state["pf_fixed_df"]
@@ -339,10 +353,11 @@ def render_personal_finance_dashboard():
 
     manual_deductions_total = manual_taxes + manual_retirement + manual_benefits + manual_other_ssi
 
-    # ✅ Net income respects the toggle
-    net_income = total_income - manual_deductions_total if use_paycheck_breakdown else total_income
+    # ✅ Only apply deductions when toggle is ON
+    use_breakdown = bool(st.session_state.get("pf_use_paycheck_breakdown", False))
+    net_income = total_income - manual_deductions_total if use_breakdown else total_income
 
-    est_tax = 0.0  # still here in case you add estimated tax mode back later
+    est_tax = 0.0
 
     fixed_total = _sum_df(fixed_df, "Monthly Amount")
     variable_total = _sum_df(variable_df, "Monthly Amount")
@@ -351,8 +366,8 @@ def render_personal_finance_dashboard():
     saving_total = _sum_df(saving_df, "Monthly Amount")
     investing_total = _sum_df(investing_df, "Monthly Amount")
 
-    investing_cashflow = investing_total  # take-home only
-    investing_display = investing_total + manual_retirement + employer_match  # includes payroll + match
+    investing_cashflow = investing_total
+    investing_display = investing_total + manual_retirement + employer_match
 
     total_monthly_debt_payments = _sum_df(debt_df, "Monthly Payment")
     total_saving_and_investing_cashflow = saving_total + investing_cashflow
@@ -372,7 +387,6 @@ def render_personal_finance_dashboard():
     investing_rate_of_gross = (investing_display / total_income) * 100 if total_income > 0 else None
     investing_rate_of_net = (investing_display / net_income) * 100 if net_income > 0 else None
 
-    # ---- Emergency Minimum + Needs/Wants/Save Split ----
     ESSENTIAL_VARIABLE_KEYWORDS = [
         "grocery", "groceries",
         "electric", "electricity", "natural gas", "water", "sewer", "trash", "garbage",
@@ -404,51 +418,19 @@ def render_personal_finance_dashboard():
         unallocated_pct = max(0.0, 100 - (needs_pct + wants_pct + save_invest_pct))
 
     # -------------------------
-    # TOP PAGE UI
+    # TOP UI: Header + Emergency
     # -------------------------
-    st.title("💸 Personal Finance Dashboard")
-    st.caption(
-        "A spreadsheet-style dashboard to track your personal monthly cash flow and net worth. "
-        "Enter your numbers and the tool does the math."
+    _dashboard_header(
+        net_income=net_income,
+        total_outflow=total_outflow,
+        remaining=remaining,
+        emergency_minimum_monthly=emergency_minimum_monthly,
+        net_worth=net_worth,
+        debt_payments=total_monthly_debt_payments,
     )
 
-    def _dashboard_header():
-        with st.container(border=True):
-            a, b, c, d, e, f = st.columns(6, gap="medium")
-            a.metric("Net", _money(net_income))
-            b.metric("Outflow", _money(total_outflow))
-            c.metric("Leftover", _money(remaining))
-            d.metric("Emergency Min", _money(emergency_minimum_monthly))
-            e.metric("Net Worth", _money(net_worth))
-            f.metric("Debt Min", _money(total_monthly_debt_payments))
-
-    _dashboard_header()
-
-    st.divider()
-
-    # ---- Small helper: editor that "auto-saves" into session_state ----
-    def _edit_table(title: str, state_key: str, editor_key: str, expected_cols: list[str], numeric_cols: list[str], column_config=None, caption: str | None = None):
-        st.markdown(f"**{title}**")
-        if caption:
-            st.caption(caption)
-
-        edited = st.data_editor(
-            st.session_state[state_key],
-            num_rows="dynamic",
-            hide_index=True,
-            width="stretch",
-            key=editor_key,
-            column_config=column_config or {},
-        )
-        st.session_state[state_key] = _sanitize_editor_df(
-            edited,
-            expected_cols=expected_cols,
-            numeric_cols=numeric_cols,
-        )
-        st.write("")
-
     # -------------------------
-    # MAIN: Inputs (left) + Summary (right)
+    # EDITORS
     # -------------------------
     st.subheader("Your Monthly Cash Flow")
     left, right = st.columns([1.1, 0.9], gap="large")
@@ -458,34 +440,47 @@ def render_personal_finance_dashboard():
 
         with tab_income:
             st.write("Add your income sources. If you have a two-income household, include both here.")
-
-            _edit_table(
-                title="Income",
-                state_key="pf_income_df",
-                editor_key="pf_income_editor",
-                expected_cols=["Source", "Monthly Amount", "Notes"],
-                numeric_cols=["Monthly Amount"],
-                column_config={
-                    "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=50.0, format="%.2f"),
-                },
-                caption="Tip: enter monthly totals. (Example: biweekly paycheck × 2.15.)",
+            st.caption(
+                "For paycheck-level accuracy (pre-tax 401k contributions, employer match, benefits, and taxes), "
+                "use the toggle + breakdown below."
             )
 
-            # ✅ Toggle instead of expander always open
+            with st.form("pf_income_form", border=False):
+                income_edit = st.data_editor(
+                    st.session_state["pf_income_df"],
+                    num_rows="dynamic",
+                    hide_index=True,
+                    width="stretch",
+                    key="pf_income_editor",
+                    column_config={
+                        "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=50.0, format="%.2f"),
+                    },
+                )
+                income_submitted = st.form_submit_button("Save income", type="primary", width="stretch")
+
+            if income_submitted:
+                st.session_state["pf_income_df"] = _sanitize_editor_df(
+                    income_edit,
+                    expected_cols=["Source", "Monthly Amount", "Notes"],
+                    numeric_cols=["Monthly Amount"],
+                )
+                st.rerun()
+
             st.markdown("---")
+
             st.markdown("#### Optional: Paycheck breakdown (gross → net)")
             st.caption(
-                "Turn this on only if the income you entered above is **gross** and you want the dashboard to calculate "
-                "**net income** using monthly deductions (taxes, benefits, retirement)."
+                "Turn this on only if your income above is **gross** and you want the dashboard to calculate **net income** "
+                "using monthly deductions."
             )
 
-            use_paycheck_breakdown = st.toggle(
+            st.toggle(
                 "Use paycheck breakdown",
-                value=st.session_state.get("pf_use_gross_breakdown", False),
-                key="pf_use_gross_breakdown",
+                value=st.session_state.get("pf_use_paycheck_breakdown", False),
+                key="pf_use_paycheck_breakdown",
             )
 
-            if use_paycheck_breakdown:
+            if st.session_state.get("pf_use_paycheck_breakdown", False):
                 st.session_state.setdefault("pf_draft_taxes", float(st.session_state.get("pf_manual_taxes", 0.0) or 0.0))
                 st.session_state.setdefault("pf_draft_retirement", float(st.session_state.get("pf_manual_retirement", 0.0) or 0.0))
                 st.session_state.setdefault("pf_draft_benefits", float(st.session_state.get("pf_manual_benefits", 0.0) or 0.0))
@@ -517,144 +512,108 @@ def render_personal_finance_dashboard():
                     st.success("Saved.")
                     st.rerun()
 
-                with st.expander("See saved deductions being used", expanded=False):
-                    st.write(f"Taxes: **{_money(st.session_state.get('pf_manual_taxes', 0.0))}**")
-                    st.write(f"Benefits: **{_money(st.session_state.get('pf_manual_benefits', 0.0))}**")
-                    st.write(f"Retirement: **{_money(st.session_state.get('pf_manual_retirement', 0.0))}**")
-                    st.write(f"Other/SSI: **{_money(st.session_state.get('pf_manual_other_ssi', 0.0))}**")
-                    st.caption("Company match doesn’t reduce take-home; it’s tracked separately.")
-                    st.write(f"Company Match (tracked): **{_money(st.session_state.get('pf_manual_match', 0.0))}**")
-
         with tab_exp:
-            _edit_table(
-                title="Fixed Expenses",
-                state_key="pf_fixed_df",
-                editor_key="pf_fixed_editor",
-                expected_cols=["Expense", "Monthly Amount", "Notes"],
-                numeric_cols=["Monthly Amount"],
-                column_config={
-                    "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
-                },
-                caption="Fixed = bills that are predictable each month.",
-            )
+            with st.form("pf_expenses_form", border=False):
+                st.markdown("**Fixed Expenses**")
+                fixed_edit = st.data_editor(
+                    st.session_state["pf_fixed_df"],
+                    num_rows="dynamic",
+                    hide_index=True,
+                    width="stretch",
+                    key="pf_fixed_editor",
+                    column_config={
+                        "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
+                    },
+                )
 
-            _edit_table(
-                title="Variable Expenses",
-                state_key="pf_variable_df",
-                editor_key="pf_variable_editor",
-                expected_cols=["Expense", "Monthly Amount", "Notes"],
-                numeric_cols=["Monthly Amount"],
-                column_config={
-                    "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
-                },
-                caption="Variable = things that change (utilities, groceries, dining, etc.).",
-            )
+                st.markdown("**Variable Expenses**")
+                variable_edit = st.data_editor(
+                    st.session_state["pf_variable_df"],
+                    num_rows="dynamic",
+                    hide_index=True,
+                    width="stretch",
+                    key="pf_variable_editor",
+                    column_config={
+                        "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
+                    },
+                )
+
+                exp_submitted = st.form_submit_button("Save expenses", type="primary", width="stretch")
+
+            if exp_submitted:
+                st.session_state["pf_fixed_df"] = _sanitize_editor_df(
+                    fixed_edit,
+                    expected_cols=["Expense", "Monthly Amount", "Notes"],
+                    numeric_cols=["Monthly Amount"],
+                )
+                st.session_state["pf_variable_df"] = _sanitize_editor_df(
+                    variable_edit,
+                    expected_cols=["Expense", "Monthly Amount", "Notes"],
+                    numeric_cols=["Monthly Amount"],
+                )
+                st.rerun()
 
         with tab_save:
-            st.write("Monthly contributions you want to make.")
-            s_col, i_col = st.columns(2, gap="large")
+            with st.form("pf_saveinvest_form", border=False):
+                st.write("Monthly contributions you want to make.")
+                s_col, i_col = st.columns(2, gap="large")
 
-            with s_col:
-                _edit_table(
-                    title="Saving",
-                    state_key="pf_saving_df",
-                    editor_key="pf_saving_editor",
+                with s_col:
+                    st.markdown("**Saving**")
+                    saving_edit = st.data_editor(
+                        st.session_state["pf_saving_df"],
+                        num_rows="dynamic",
+                        hide_index=True,
+                        width="stretch",
+                        key="pf_saving_editor",
+                        column_config={
+                            "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
+                        },
+                    )
+
+                with i_col:
+                    st.markdown("**Investing**")
+                    investing_edit = st.data_editor(
+                        st.session_state["pf_investing_df"],
+                        num_rows="dynamic",
+                        hide_index=True,
+                        width="stretch",
+                        key="pf_investing_editor",
+                        column_config={
+                            "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
+                        },
+                    )
+
+                si_submitted = st.form_submit_button("Save saving & investing", type="primary", width="stretch")
+
+            if si_submitted:
+                st.session_state["pf_saving_df"] = _sanitize_editor_df(
+                    saving_edit,
                     expected_cols=["Bucket", "Monthly Amount", "Notes"],
                     numeric_cols=["Monthly Amount"],
-                    column_config={
-                        "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
-                    },
                 )
-
-            with i_col:
-                _edit_table(
-                    title="Investing",
-                    state_key="pf_investing_df",
-                    editor_key="pf_investing_editor",
+                st.session_state["pf_investing_df"] = _sanitize_editor_df(
+                    investing_edit,
                     expected_cols=["Bucket", "Monthly Amount", "Notes"],
                     numeric_cols=["Monthly Amount"],
-                    column_config={
-                        "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
-                    },
                 )
+                st.rerun()
 
-    # ---- Summary UI helpers ----
-    def _section(title: str):
-        st.markdown(
-            f"<div style='font-size:0.85rem; letter-spacing:.06em; text-transform:uppercase; opacity:.70; margin: 0.2rem 0 0.6rem 0;'>{title}</div>",
-            unsafe_allow_html=True,
-        )
+    # -------------------------
+    # EMERGENCY MINIMUM
+    # -------------------------
+    st.divider()
+    st.subheader("🆘 Emergency Minimum")
+    e1, e2, e3, e4 = st.columns(4, gap="large")
+    e1.metric("Monthly", _money(emergency_minimum_monthly))
+    e2.metric("3 mo", _money(emergency_minimum_monthly * 3))
+    e3.metric("6 mo", _money(emergency_minimum_monthly * 6))
+    e4.metric("12 mo", _money(emergency_minimum_monthly * 12))
 
-    with right:
-        # ✅ One container, less “box fatigue”
-        with st.container(border=True):
-            st.markdown("### Summary")
-            st.caption("This updates based on what you enter on the left.")
-
-            st.subheader("This Month at a Glance")
-            fig, _, _ = cashflow_breakdown_chart(
-                net_income=net_income,
-                living_expenses=expenses_total,
-                debt_payments=total_monthly_debt_payments,
-                saving=saving_total,
-                investing_cashflow=investing_cashflow,
-            )
-            st.plotly_chart(fig, width="stretch")
-
-            st.divider()
-            _section("Income")
-            c1, c2 = st.columns(2, gap="medium")
-            c1.metric("Net Income", _money(net_income))
-            c2.metric("Gross Income", _money(total_income))
-
-            st.divider()
-            _section("Expenses & Investing")
-            c1, c2 = st.columns(2, gap="medium")
-            c1.metric("Living Expenses", _money(expenses_total))
-            c2.metric("Debt Payments", _money(total_monthly_debt_payments))
-
-            c3, c4 = st.columns(2, gap="medium")
-            c3.metric("Saving", _money(saving_total))
-            c4.metric("Investing (incl. retirement)", _money(investing_display))
-
-            st.divider()
-            _section("Leftover")
-            c1, c2 = st.columns(2, gap="medium")
-            c1.metric("Monthly", _money(remaining))
-            c2.metric("Weekly", _money(remaining / 4.33))
-
-            with st.expander("What you can do with leftover", expanded=False):
-                st.caption("Totally optional guidance — use what fits your goals and your season of life.")
-                if remaining <= 0:
-                    st.info("You’re allocating basically everything. If it feels tight, trim wants first or temporarily lower saving/investing.")
-                else:
-                    st.markdown(f"**You have {_money(remaining)} available each month.** Ideas:")
-                    bullets = [
-                        "Build/boost savings (emergency fund, sinking funds, short-term goals).",
-                        "Invest more (brokerage, retirement, HSA if relevant).",
-                        "Spend intentionally (guilt-free fun money that’s already accounted for).",
-                        "Hold it as a buffer for a month while you watch patterns.",
-                    ]
-                    if has_debt:
-                        bullets.insert(2, "Pay down debt faster (extra toward highest-interest balance).")
-                    for b in bullets:
-                        st.markdown(f"- {b}")
-
-            st.divider()
-            _section("Spending & Saving Split")
-            c1, c2, c3, c4 = st.columns(4, gap="medium")
-            c1.metric("Needs", _pct(needs_pct))
-            c2.metric("Wants", _pct(wants_pct))
-            c3.metric("Save+Invest", _pct(save_invest_pct))
-            c4.metric("Unallocated", _pct(unallocated_pct))
-            st.caption("Rule of thumb: ~50% needs, ~30% wants, ~20% save & invest. Unallocated is normal.")
-
-            st.divider()
-            _section("Net Worth")
-            c1, c2 = st.columns(2, gap="medium")
-            c1.metric("Net Worth", _money(net_worth))
-            c2.metric("Total Liabilities", _money(total_liabilities))
-
+    with st.expander("What this includes", expanded=False):
+        st.write(f"• **Fixed bills**: {_money(fixed_total)}")
+        st.write(f"• **Essentials** (groceries, utilities, healthcare): {_money(essential_variable)}")
+        st.write(f"• **Minimum debt**: {_money(debt_minimums)}")
 
     st.divider()
 
@@ -672,46 +631,122 @@ def render_personal_finance_dashboard():
         debt_df=debt_df,
     )
 
-    st.divider()
+    # ---- Summary UI helpers ----
+    def _section(title: str):
+        st.markdown(
+            f"<div style='font-size:0.85rem; letter-spacing:.06em; text-transform:uppercase; opacity:.70; margin: 0.2rem 0 0.6rem 0;'>{title}</div>",
+            unsafe_allow_html=True,
+        )
 
-    # Emergency minimum 
-    st.subheader("🆘 Emergency Minimum")
-    e1, e2, e3, e4 = st.columns(4, gap="large")
-    e1.metric("Monthly", _money(emergency_minimum_monthly))
-    e2.metric("3 mo", _money(emergency_minimum_monthly * 3))
-    e3.metric("6 mo", _money(emergency_minimum_monthly * 6))
-    e4.metric("12 mo", _money(emergency_minimum_monthly * 12))
+    with right:
+        with st.container(border=True):
+            st.markdown("### Summary")
 
-    with st.expander("What this includes", expanded=False):
-        st.write(f"• **Fixed bills**: {_money(fixed_total)}")
-        st.write(f"• **Essentials** (groceries, utilities, healthcare): {_money(essential_variable)}")
-        st.write(f"• **Minimum debt**: {_money(debt_minimums)}")
+            st.subheader("This Month at a Glance")
+            fig, _, _ = cashflow_breakdown_chart(
+                net_income=net_income,
+                living_expenses=expenses_total,
+                debt_payments=total_monthly_debt_payments,
+                saving=saving_total,
+                investing_cashflow=investing_cashflow,
+            )
+            st.plotly_chart(fig, width="stretch")
+
+            with st.container(border=True):
+                _section("Net & Gross Income")
+                c1, c2 = st.columns(2, gap="medium")
+                c1.metric("Net Income", _money(net_income))
+                c2.metric("Gross Income", _money(total_income))
+
+            with st.container(border=True):
+                _section("Expenses, Debt, Investments, & Savings")
+                c1, c2 = st.columns(2, gap="medium")
+                c1.metric("Living Expenses", _money(expenses_total))
+                c2.metric("Debt Payments", _money(total_monthly_debt_payments))
+
+            with st.container(border=True):
+                c3, c4 = st.columns(2, gap="medium")
+                c3.metric("Saving", _money(saving_total))
+                c4.metric("Investing", _money(investing_display))
+
+            with st.container(border=True):
+                c5, c6 = st.columns(2, gap="medium")
+                c5.metric("Total Expenses", _money(total_outflow))
+                c6.metric(
+                    "Gross Income Invested",
+                    _pct(investing_rate_of_gross),
+                    help="Investing divided by total pre-tax income.",
+            )
+
+            with st.container(border=True):
+                _section("Remaining (After Bills, Saving & Investing)")
+                c1, c2 = st.columns(2, gap="medium")
+                c1.metric("Monthly", _money(remaining))
+                c2.metric("Weekly", _money(remaining / 4.33))
+
+            with st.container(border=True):
+                _section("Spending & Saving Split")
+                c1, c2, c3, c4 = st.columns(4, gap="medium")
+                c1.metric("Needs", _pct(needs_pct), help="Required spending: housing, utilities, groceries, insurance, and minimum debt payments.")
+                c2.metric("Wants", _pct(wants_pct), help="Discretionary spending: dining out, subscriptions, shopping, and non-essentials.")
+                c3.metric("Save & Invest", _pct(save_invest_pct), help="Money intentionally set aside for savings, investing, and retirement.")
+                c4.metric("Unallocated", _pct(unallocated_pct), help="Income not yet assigned. Often used as buffer, flexibility, or future decisions.")
+                st.caption("Rule of thumb: ~50% needs, ~30% wants, ~20% save & invest. Unallocated is normal and often intentional.")
+
+            with st.container(border=True):
+                _section("Net Worth & Liabilities")
+                c1, c2 = st.columns(2, gap="medium")
+                c1.metric("Net Worth", _money(net_worth))
+                c2.metric("Total Liabilities", _money(total_liabilities))
 
     st.divider()
 
     # ---- Net worth section ----
     st.subheader("Your Net Worth")
+
     a_col, l_col = st.columns([1, 1], gap="large")
 
     with a_col:
-        _edit_table(
-            title="Assets",
-            state_key="pf_assets_df",
-            editor_key="pf_assets_editor",
-            expected_cols=["Asset", "Value", "Notes"],
-            numeric_cols=["Value"],
-            column_config={"Value": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f")},
-        )
+        st.markdown("**Assets**")
+        with st.form("pf_assets_form", border=False):
+            assets_edit = st.data_editor(
+                st.session_state["pf_assets_df"],
+                num_rows="dynamic",
+                hide_index=True,
+                width="stretch",
+                key="pf_assets_editor",
+                column_config={"Value": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f")},
+            )
+            assets_submitted = st.form_submit_button("Save assets", type="primary", width="stretch")
+
+        if assets_submitted:
+            st.session_state["pf_assets_df"] = _sanitize_editor_df(
+                assets_edit,
+                expected_cols=["Asset", "Value", "Notes"],
+                numeric_cols=["Value"],
+            )
+            st.rerun()
 
     with l_col:
-        _edit_table(
-            title="Liabilities",
-            state_key="pf_liabilities_df",
-            editor_key="pf_liabilities_editor",
-            expected_cols=["Liability", "Value", "Notes"],
-            numeric_cols=["Value"],
-            column_config={"Value": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f")},
-        )
+        st.markdown("**Liabilities**")
+        with st.form("pf_liabilities_form", border=False):
+            liabilities_edit = st.data_editor(
+                st.session_state["pf_liabilities_df"],
+                num_rows="dynamic",
+                hide_index=True,
+                width="stretch",
+                key="pf_liabilities_editor",
+                column_config={"Value": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f")},
+            )
+            liabilities_submitted = st.form_submit_button("Save liabilities", type="primary", width="stretch")
+
+        if liabilities_submitted:
+            st.session_state["pf_liabilities_df"] = _sanitize_editor_df(
+                liabilities_edit,
+                expected_cols=["Liability", "Value", "Notes"],
+                numeric_cols=["Value"],
+            )
+            st.rerun()
 
     n1, n2, n3 = st.columns(3, gap="large")
     n1.metric("Total Assets", _money(total_assets))
@@ -722,54 +757,68 @@ def render_personal_finance_dashboard():
 
     # ---- Debt info ----
     st.subheader("Debt Details")
-    st.caption("This doesn’t affect net worth beyond the liability values — it’s here for clarity + payoff planning.")
+    st.caption("This doesn't affect net worth beyond the liability values, it's just here for clarity and planning.")
 
-    debt_edit = st.data_editor(
-        st.session_state["pf_debt_df"],
-        num_rows="dynamic",
-        hide_index=True,
-        width="stretch",
-        key="pf_debt_editor",
-        column_config={
-            "Balance": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f"),
-            "APR %": st.column_config.NumberColumn(min_value=0.0, max_value=60.0, step=0.1, format="%.2f"),
-            "Monthly Payment": st.column_config.NumberColumn(min_value=0.0, step=10.0, format="%.2f"),
-        },
-    )
-    st.session_state["pf_debt_df"] = _sanitize_editor_df(
-        debt_edit,
-        expected_cols=["Debt", "Balance", "APR %", "Monthly Payment", "Notes"],
-        numeric_cols=["Balance", "APR %", "Monthly Payment"],
-    )
+    with st.form("pf_debt_form", border=False):
+        debt_edit = st.data_editor(
+            st.session_state["pf_debt_df"],
+            num_rows="dynamic",
+            hide_index=True,
+            width="stretch",
+            key="pf_debt_editor",
+            column_config={
+                "Balance": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f"),
+                "APR %": st.column_config.NumberColumn(min_value=0.0, max_value=60.0, step=0.1, format="%.2f"),
+                "Monthly Payment": st.column_config.NumberColumn(min_value=0.0, step=10.0, format="%.2f"),
+            },
+        )
+        debt_submitted = st.form_submit_button("Save debt details", type="primary", width="stretch")
+
+    if debt_submitted:
+        st.session_state["pf_debt_df"] = _sanitize_editor_df(
+            debt_edit,
+            expected_cols=["Debt", "Balance", "APR %", "Monthly Payment", "Notes"],
+            numeric_cols=["Balance", "APR %", "Monthly Payment"],
+        )
+        st.rerun()
 
     st.markdown("### Debt Summary")
     c1, c2, c3 = st.columns([0.55, 0.85, 1.2], gap="large")
 
     with c1:
-        st.metric("Total Monthly Debt Payments", _money(total_monthly_debt_payments))
+        st.metric(
+            "Total Monthly Debt Payments",
+            _money(total_monthly_debt_payments),
+            help="The total minimum amount you must pay toward debts each month.",
+        )
 
     with c2:
         st.caption(
-            "**Debt Burden** = % of take-home pay going to minimum debt payments each month. "
-            "Rough guide: under ~15% feels light, 15–30% moderate, 30%+ heavy."
+            "**Debt Burden** shows what % of your take-home pay goes to minimum debt payments each month. "
+            "Lower is more flexible. Rough guide: under ~15% feels light, 15-30% is moderate, 30%+ is heavy."
         )
         fig_burden, _ = debt_burden_indicator(net_income=net_income, debt_payments=total_monthly_debt_payments)
         st.plotly_chart(fig_burden, width="stretch")
 
     with c3:
         st.caption(
-            "**Payoff Order** ranks debts for where to focus extra payments. "
-            "Bars show **balance**, and the label shows **APR**."
+            "**Payoff Order** ranks your debts for where to focus extra payments. "
+            "Bars show **balance**, and the label on each bar is the **APR**."
         )
         strategy = st.radio(
             "Payoff strategy",
             ["Avalanche (APR)", "Snowball (Balance)"],
             horizontal=True,
             key="pf_debt_strategy",
-            help="Avalanche saves more interest. Snowball builds momentum.",
+            help="Avalanche saves more interest (highest APR first). Snowball builds momentum (smallest balance first).",
         )
         fig_order = debt_payoff_order_chart(st.session_state["pf_debt_df"], strategy=strategy)
         st.plotly_chart(fig_order, width="stretch")
+
+    st.caption(
+        "Tip: Keep paying minimums on everything, then put any extra toward the #1 ranked debt. "
+        "If you have leftover income each month, put as much as possible toward your debt(s)."
+    )
 
     st.divider()
 
@@ -810,6 +859,7 @@ def render_personal_finance_dashboard():
             "safe_to_spend_weekly": float(remaining / 4.33),
             "safe_to_spend_daily": float(remaining / 30.4),
             "retirement_total_employee_plus_match": float(total_retirement_contrib),
+            "paycheck_breakdown_enabled": bool(st.session_state.get("pf_use_paycheck_breakdown", False)),
         },
         "net_worth": {
             "assets_total": float(total_assets),
@@ -839,11 +889,8 @@ def render_personal_finance_dashboard():
     with cA:
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
         filename = f"personal_finance_snapshot_{timestamp}.json"
-        _download_json_button(
-            "Download snapshot (JSON)",
-            snapshot,
-            filename,
-        )    
+        _download_json_button("Download snapshot (JSON)", snapshot, filename)
+
     with cB:
         combined = pd.concat(
             [
@@ -857,6 +904,7 @@ def render_personal_finance_dashboard():
             sort=False,
         )
         _download_csv_button("Download monthly tables (CSV)", combined, "personal_finance_monthly_tables.csv")
+
     with cC:
         nw_combined = pd.concat(
             [
@@ -878,13 +926,11 @@ def render_personal_finance_dashboard():
             try:
                 raw = uploaded.getvalue()
                 sig = hashlib.sha256(raw).hexdigest()
-
                 snap = json.loads(raw.decode("utf-8"))
 
                 if not isinstance(snap, dict) or "tables" not in snap:
                     st.error("That file doesn't look like a valid dashboard snapshot.")
                 else:
-                    # prevent re-queueing on every rerun
                     already_applied = (sig == st.session_state.get("pf_last_import_sig", ""))
 
                     if already_applied:
@@ -895,7 +941,6 @@ def render_personal_finance_dashboard():
                             st.session_state["pf_pending_snapshot"] = snap
                             st.session_state["pf_has_pending_import"] = True
 
-                            # mark as applied + reset uploader so it doesn't keep firing
                             st.session_state["pf_last_import_sig"] = sig
                             st.session_state["pf_uploader_nonce"] += 1
 
