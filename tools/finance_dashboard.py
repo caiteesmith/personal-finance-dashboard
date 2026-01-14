@@ -505,10 +505,36 @@ def render_personal_finance_dashboard():
     if net_income > 0:
         investing_rate_of_net = (investing_display / net_income) * 100
 
+    # ---- Emergency Minimum + Needs/Wants/Save Split (shared logic) ----
+    ESSENTIAL_VARIABLE_KEYWORDS = [
+        "grocery", "groceries",
+        "electric", "electricity", "natural gas", "water", "sewer", "trash", "garbage",
+        "utility", "utilities",
+        "internet", "wifi", "phone", "cell",
+        "insurance", "medical", "health", "prescription", "rx", "medicine",
+    ]
+
+    essential_variable = _sum_by_keywords(
+        variable_df,
+        name_col="Expense",
+        amount_col="Monthly Amount",
+        keywords=ESSENTIAL_VARIABLE_KEYWORDS,
+    )
+
+    debt_minimums = total_monthly_debt_payments
+    emergency_minimum_monthly = fixed_total + essential_variable + debt_minimums
+
     # ---- Needs / Wants / Save & Invest split ----
-    needs_total = fixed_total + essential_variable + total_monthly_debt_payments
+    # Needs = emergency minimum (fixed + essentials + minimum debt)
+    needs_total = emergency_minimum_monthly
+
+    # Wants = non-essential variable spending
     wants_total = max(variable_total - essential_variable, 0.0)
+
+    # Save & Invest = cashflow-based savings + investing (NOT employer match)
     save_invest_total = saving_total + investing_cashflow
+
+    # Unallocated = remaining money (buffer / flexible / undecided)
     unallocated_total = max(remaining, 0.0)
 
     needs_pct = wants_pct = save_invest_pct = unallocated_pct = None
@@ -517,6 +543,8 @@ def render_personal_finance_dashboard():
         needs_pct = (needs_total / net_income) * 100
         wants_pct = (wants_total / net_income) * 100
         save_invest_pct = (save_invest_total / net_income) * 100
+
+        # ensure totals always hit 100%
         unallocated_pct = max(0.0, 100 - (needs_pct + wants_pct + save_invest_pct))
 
     # -------------------------
@@ -551,22 +579,6 @@ def render_personal_finance_dashboard():
 
     debt_minimums = total_monthly_debt_payments
     emergency_minimum_monthly = fixed_total + essential_variable + debt_minimums
-
-    # -------------------------
-    # 50/30/20-style breakdown
-    # -------------------------
-    needs_amount = emergency_minimum_monthly  # fixed + essential variable + minimum debt
-    wants_amount = max(0.0, expenses_total - needs_amount)  # non-essential variable spending
-    save_invest_amount = saving_total + investing_cashflow  # cashflow-based saving/investing
-
-    def _safe_pct(numerator: float, denominator: float) -> float | None:
-        if denominator <= 0:
-            return None
-        return (numerator / denominator) * 100.0
-
-    needs_pct = _safe_pct(needs_amount, net_income)
-    wants_pct = _safe_pct(wants_amount, net_income)
-    save_invest_pct = _safe_pct(save_invest_amount, net_income)
 
     # ---- Summary UI ----
     def _section(title: str):
