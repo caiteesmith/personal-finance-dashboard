@@ -216,50 +216,50 @@ def render_personal_finance_dashboard():
                 key="pf_income_is",
             )
 
-    # ---- Gross Breakdown ----
-    if income_is == "Gross (before tax)":
-        st.subheader("Gross Income Breakdown (Optional)")
-        st.caption(
-            "Use this section only if your income is entered as gross. "
-            "You can estimate taxes or enter exact monthly deductions for more accurate cash flow."
-        )
-        st.radio(
-            "How should we calculate net income?",
-            ["Estimate (tax rate)", "Manual deductions"],
-            key="pf_gross_mode",
-            horizontal=True,
-        )
+        # ---- Gross Breakdown ----
+        if income_is == "Gross (before tax)":
+            st.subheader("Gross Income Breakdown (Optional)")
+            st.caption(
+                "Use this section only if your income is entered as gross. "
+                "You can estimate taxes or enter exact monthly deductions for more accurate cash flow."
+            )
+            st.radio(
+                "How should we calculate net income?",
+                ["Estimate (tax rate)", "Manual deductions"],
+                key="pf_gross_mode",
+                horizontal=True,
+            )
 
-        with st.form("pf_gross_breakdown_form", border=False):
-            manual_mode = st.session_state.get("pf_gross_mode") == "Manual deductions"
+            with st.form("pf_gross_breakdown_form", border=False):
+                manual_mode = st.session_state.get("pf_gross_mode") == "Manual deductions"
 
-            g1, g2, g3 = st.columns(3, gap="large")
-            with g1:
-                st.number_input("Taxes (monthly)", min_value=0.0, step=50.0, key="pf_manual_taxes", disabled=not manual_mode)
-                st.number_input("Benefits (monthly)", min_value=0.0, step=25.0, key="pf_manual_benefits", disabled=not manual_mode)
+                g1, g2, g3 = st.columns(3, gap="large")
+                with g1:
+                    st.number_input("Taxes (monthly)", min_value=0.0, step=50.0, key="pf_manual_taxes", disabled=not manual_mode)
+                    st.number_input("Benefits (monthly)", min_value=0.0, step=25.0, key="pf_manual_benefits", disabled=not manual_mode)
 
-            with g2:
-                st.number_input("Retirement (employee, monthly)", min_value=0.0, step=50.0, key="pf_manual_retirement", disabled=not manual_mode)
-                st.number_input("Other/SSI (monthly)", min_value=0.0, step=25.0, key="pf_manual_other_ssi", disabled=not manual_mode)
+                with g2:
+                    st.number_input("Retirement (employee, monthly)", min_value=0.0, step=50.0, key="pf_manual_retirement", disabled=not manual_mode)
+                    st.number_input("Other/SSI (monthly)", min_value=0.0, step=25.0, key="pf_manual_other_ssi", disabled=not manual_mode)
 
-            with g3:
-                st.number_input(
-                    "Company Match (monthly, optional)",
-                    min_value=0.0,
-                    step=50.0,
-                    key="pf_manual_match",
-                    help="Tracked as extra retirement contribution; does not reduce take-home.",
-                    disabled=not manual_mode,
-                )
+                with g3:
+                    st.number_input(
+                        "Company Match (monthly, optional)",
+                        min_value=0.0,
+                        step=50.0,
+                        key="pf_manual_match",
+                        help="Tracked as extra retirement contribution; does not reduce take-home.",
+                        disabled=not manual_mode,
+                    )
 
-            submitted = st.form_submit_button("Save gross breakdown", use_container_width=True, disabled=not manual_mode)
+                submitted = st.form_submit_button("Save gross breakdown", use_container_width=True, disabled=not manual_mode)
 
-            if submitted:
-                st.success("Saved.")
-                st.rerun()
+                if submitted:
+                    st.success("Saved.")
+                    st.rerun()
 
-        if st.session_state.get("pf_gross_mode") != "Manual deductions":
-            st.info("Using estimated tax rate. Switch to Manual deductions if you want to specify exact amounts.")
+            if st.session_state.get("pf_gross_mode") != "Manual deductions":
+                st.info("Using estimated tax rate. Switch to Manual deductions if you want to specify exact amounts.")
 
     # -------------------------
     # EDITORS
@@ -418,17 +418,22 @@ def render_personal_finance_dashboard():
     saving_total = _sum_df(saving_df, "Monthly Amount")
     investing_total = _sum_df(investing_df, "Monthly Amount")
 
-    investing_display = investing_total
     investing_cashflow = investing_total
+    investing_display = investing_total
 
-    manual_retirement = 0.0
-    company_match = 0.0
+    payroll_retirement = 0.0
+    employer_match = 0.0
 
     if income_is == "Gross (before tax)" and st.session_state.get("pf_gross_mode") == "Manual deductions":
-        manual_retirement = float(st.session_state.get("pf_manual_retirement", 0.0) or 0.0)
-        company_match = float(st.session_state.get("pf_manual_match", 0.0) or 0.0)
-        investing_display = investing_total + manual_retirement + company_match
-        investing_cashflow = investing_total + manual_retirement
+        payroll_retirement = float(st.session_state.get("pf_manual_retirement", 0.0) or 0.0)
+        employer_match = float(st.session_state.get("pf_manual_match", 0.0) or 0.0)
+
+        investing_display = investing_total + payroll_retirement + employer_match
+
+        investing_cashflow = investing_total
+
+    manual_retirement = payroll_retirement
+    company_match = employer_match
 
     total_monthly_debt_payments = _sum_df(debt_df, "Monthly Payment")
     total_saving_and_investing_cashflow = saving_total + investing_cashflow
@@ -710,6 +715,7 @@ def render_personal_finance_dashboard():
             "investing_manual_retirement": float(manual_retirement),
             "investing_company_match": float(company_match),
             "saving_and_investing_cashflow_total": float(total_saving_and_investing_cashflow),
+            "investing_takehome_only": float(investing_cashflow),
             "left_over": float(remaining),
             "safe_to_spend_weekly": float(remaining / 4.33),
             "safe_to_spend_daily": float(remaining / 30.4),
