@@ -188,16 +188,16 @@ def render_visual_overview(
                 investing_cashflow,
                 remaining,
             ),
-            use_container_width=True,
+            width="stretch",
         )
 
     with v2:
         st.plotly_chart(
             debt_payments_vs_balances(debt_df),
-            use_container_width=True,
+            width="stretch",
         )
 
     st.plotly_chart(
         top_expenses_bar(fixed_df, variable_df),
-        use_container_width=True,
+        width="stretch",
     )
