@@ -214,74 +214,74 @@ def render_personal_finance_dashboard():
     _ensure_df("pf_liabilities_df", DEFAULT_LIABILITIES)
 
     # ---- Settings ----
-    with st.expander("Income Settings & Tax/Deduction Options", expanded=False):
-        st.caption(
-            "Choose whether your income is entered as net or gross. "
-            "If you enter gross income, you can estimate taxes or define exact monthly deductions below."
-        )
-        c1, c2, c3 = st.columns([1, 1, 1], gap="large")
-        with c1:
-            month_label = st.text_input("Month label", key="pf_month_label")
-        with c2:
-            tax_rate = st.number_input(
-                "Estimated effective tax rate (%)",
-                min_value=0.0,
-                max_value=60.0,
-                step=0.5,
-                key="pf_tax_rate",
-                help="Optional. If you enter *gross* income, this helps estimate post-tax cash flow.",
-            )
-        with c3:
-            income_is = st.selectbox(
-                "Income amounts are…",
-                ["Net (after tax)", "Gross (before tax)"],
-                key="pf_income_is",
-            )
+    # with st.expander("Income Settings & Tax/Deduction Options", expanded=False):
+    #     st.caption(
+    #         "Choose whether your income is entered as net or gross. "
+    #         "If you enter gross income, you can estimate taxes or define exact monthly deductions below."
+    #     )
+    #     c1, c2, c3 = st.columns([1, 1, 1], gap="large")
+    #     with c1:
+    #         month_label = st.text_input("Month label", key="pf_month_label")
+    #     with c2:
+    #         tax_rate = st.number_input(
+    #             "Estimated effective tax rate (%)",
+    #             min_value=0.0,
+    #             max_value=60.0,
+    #             step=0.5,
+    #             key="pf_tax_rate",
+    #             help="Optional. If you enter *gross* income, this helps estimate post-tax cash flow.",
+    #         )
+    #     with c3:
+    #         income_is = st.selectbox(
+    #             "Income amounts are…",
+    #             ["Net (after tax)", "Gross (before tax)"],
+    #             key="pf_income_is",
+    #         )
 
-        # ---- Gross Breakdown ----
-        if income_is == "Gross (before tax)":
-            st.subheader("Gross Income Breakdown (monthly)")
-            st.caption(
-                "Use this section only if you want to enter your income as gross, e.g. a paycheck breakdown. "
-                "You can estimate taxes or enter exact monthly deductions for more accurate cash flow."
-            )
-            st.radio(
-                "How should we calculate net income?",
-                ["Estimate (tax rate)", "Manual deductions"],
-                key="pf_gross_mode",
-                horizontal=True,
-            )
+    #     # ---- Gross Breakdown ----
+    #     if income_is == "Gross (before tax)":
+    #         st.subheader("Gross Income Breakdown (monthly)")
+    #         st.caption(
+    #             "Use this section only if you want to enter your income as gross, e.g. a paycheck breakdown. "
+    #             "You can estimate taxes or enter exact monthly deductions for more accurate cash flow."
+    #         )
+    #         st.radio(
+    #             "How should we calculate net income?",
+    #             ["Estimate (tax rate)", "Manual deductions"],
+    #             key="pf_gross_mode",
+    #             horizontal=True,
+    #         )
 
-            with st.form("pf_gross_breakdown_form", border=False):
-                manual_mode = st.session_state.get("pf_gross_mode") == "Manual deductions"
+    #         with st.form("pf_gross_breakdown_form", border=False):
+    #             manual_mode = st.session_state.get("pf_gross_mode") == "Manual deductions"
 
-                g1, g2, g3 = st.columns(3, gap="large")
-                with g1:
-                    st.number_input("Taxes", min_value=0.0, step=50.0, key="pf_manual_taxes", disabled=not manual_mode)
-                    st.number_input("Benefits", min_value=0.0, step=25.0, key="pf_manual_benefits", disabled=not manual_mode)
+    #             g1, g2, g3 = st.columns(3, gap="large")
+    #             with g1:
+    #                 st.number_input("Taxes", min_value=0.0, step=50.0, key="pf_manual_taxes", disabled=not manual_mode)
+    #                 st.number_input("Benefits", min_value=0.0, step=25.0, key="pf_manual_benefits", disabled=not manual_mode)
 
-                with g2:
-                    st.number_input("Retirement (employee)", min_value=0.0, step=50.0, key="pf_manual_retirement", disabled=not manual_mode)
-                    st.number_input("Other/SSI", min_value=0.0, step=25.0, key="pf_manual_other_ssi", disabled=not manual_mode)
+    #             with g2:
+    #                 st.number_input("Retirement (employee)", min_value=0.0, step=50.0, key="pf_manual_retirement", disabled=not manual_mode)
+    #                 st.number_input("Other/SSI", min_value=0.0, step=25.0, key="pf_manual_other_ssi", disabled=not manual_mode)
 
-                with g3:
-                    st.number_input(
-                        "Company Match (optional)",
-                        min_value=0.0,
-                        step=50.0,
-                        key="pf_manual_match",
-                        help="Tracked as extra retirement contribution; does not reduce take-home.",
-                        disabled=not manual_mode,
-                    )
+    #             with g3:
+    #                 st.number_input(
+    #                     "Company Match (optional)",
+    #                     min_value=0.0,
+    #                     step=50.0,
+    #                     key="pf_manual_match",
+    #                     help="Tracked as extra retirement contribution; does not reduce take-home.",
+    #                     disabled=not manual_mode,
+    #                 )
 
-                submitted = st.form_submit_button("Save gross breakdown", width="stretch", disabled=not manual_mode)
+    #             submitted = st.form_submit_button("Save gross breakdown", width="stretch", disabled=not manual_mode)
 
-                if submitted:
-                    st.success("Saved.")
-                    st.rerun()
+    #             if submitted:
+    #                 st.success("Saved.")
+    #                 st.rerun()
 
-            if st.session_state.get("pf_gross_mode") != "Manual deductions":
-                st.info("Using estimated tax rate. Switch to Manual deductions if you want to specify exact amounts.")
+    #         if st.session_state.get("pf_gross_mode") != "Manual deductions":
+    #             st.info("Using estimated tax rate. Switch to Manual deductions if you want to specify exact amounts.")
 
     # -------------------------
     # EDITORS
