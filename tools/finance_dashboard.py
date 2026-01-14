@@ -117,13 +117,21 @@ def render_personal_finance_dashboard():
         "Enter your numbers, click Save, and the tool does the math."
     )
 
-    # ---- Widget defaults (no value= when key=) ----
+    # ---- Widget defaults ----
     if "pf_month_label" not in st.session_state:
         st.session_state["pf_month_label"] = datetime.now().strftime("%B %Y")
     if "pf_tax_rate" not in st.session_state:
         st.session_state["pf_tax_rate"] = 0.0
     if "pf_income_is" not in st.session_state:
         st.session_state["pf_income_is"] = "Net (after tax)"
+
+    # Optional gross-income breakdown defaults
+    st.session_state.setdefault("pf_gross_mode", "Estimate (tax rate)")
+    st.session_state.setdefault("pf_manual_taxes", 0.0)
+    st.session_state.setdefault("pf_manual_retirement", 0.0)
+    st.session_state.setdefault("pf_manual_match", 0.0)  # tracked, not deducted
+    st.session_state.setdefault("pf_manual_benefits", 0.0)
+    st.session_state.setdefault("pf_manual_other_ssi", 0.0)
 
     # ---- Persisted tables ----
     _ensure_df("pf_income_df", DEFAULT_INCOME)
@@ -154,6 +162,48 @@ def render_personal_finance_dashboard():
                 ["Net (after tax)", "Gross (before tax)"],
                 key="pf_income_is",
             )
+
+    # ---- Optional Gross Breakdown ----
+    if st.session_state.get("pf_income_is") == "Gross (before tax)":
+        st.subheader("Optional: Gross Income Breakdown")
+        st.caption(
+            "If you know your monthly deductions, enter them here instead of using an estimated tax rate. "
+            "Company match is tracked as extra retirement contribution (it does not reduce take-home)."
+        )
+
+        st.radio(
+            "How should we calculate net income?",
+            ["Estimate (tax rate)", "Manual deductions"],
+            key="pf_gross_mode",
+            horizontal=True,
+        )
+
+        if st.session_state["pf_gross_mode"] == "Manual deductions":
+            with st.form("pf_gross_breakdown_form", border=False):
+                g1, g2, g3 = st.columns(3, gap="large")
+
+                with g1:
+                    st.number_input("Taxes (monthly)", min_value=0.0, step=50.0, key="pf_manual_taxes")
+                    st.number_input("Benefits (monthly)", min_value=0.0, step=25.0, key="pf_manual_benefits")
+
+                with g2:
+                    st.number_input("Retirement (employee, monthly)", min_value=0.0, step=50.0, key="pf_manual_retirement")
+                    st.number_input("Other / SSI (monthly)", min_value=0.0, step=25.0, key="pf_manual_other_ssi")
+
+                with g3:
+                    st.number_input(
+                        "Company Match (monthly, optional)",
+                        min_value=0.0,
+                        step=50.0,
+                        key="pf_manual_match",
+                        help="Tracked as extra retirement contribution; does not reduce take-home.",
+                    )
+
+                saved = st.form_submit_button("Save gross breakdown", use_container_width=True)
+                if saved:
+                    st.success("Saved. Net income will use your manual deductions.")
+        else:
+            st.info("Using estimated tax rate. Switch to Manual deductions if you want to specify exact amounts.")
 
     st.subheader("Your Monthly Cash Flow")
     left, right = st.columns([1.1, 0.9], gap="large")
@@ -240,18 +290,36 @@ def render_personal_finance_dashboard():
 
     total_income = _sum_df(income_df, "Monthly Amount")
 
+    # Net income logic (gross supports estimate OR manual)
     est_tax = 0.0
-    if income_is == "Gross (before tax)" and float(tax_rate) > 0:
-        est_tax = total_income * (float(tax_rate) / 100.0)
-        net_income = total_income - est_tax
-    else:
-        net_income = total_income
+    manual_deductions_total = 0.0
+    net_income = total_income
+
+    if income_is == "Gross (before tax)":
+        if st.session_state["pf_gross_mode"] == "Estimate (tax rate)":
+            if float(tax_rate) > 0:
+                est_tax = total_income * (float(tax_rate) / 100.0)
+            net_income = total_income - est_tax
+        else:
+            manual_taxes = float(st.session_state.get("pf_manual_taxes", 0.0) or 0.0)
+            manual_retirement = float(st.session_state.get("pf_manual_retirement", 0.0) or 0.0)
+            manual_benefits = float(st.session_state.get("pf_manual_benefits", 0.0) or 0.0)
+            manual_other_ssi = float(st.session_state.get("pf_manual_other_ssi", 0.0) or 0.0)
+
+            manual_deductions_total = manual_taxes + manual_retirement + manual_benefits + manual_other_ssi
+            net_income = total_income - manual_deductions_total
 
     fixed_total = _sum_df(fixed_df, "Monthly Amount")
     variable_total = _sum_df(variable_df, "Monthly Amount")
     expenses_total = fixed_total + variable_total
+
     saving_total = _sum_df(saving_df, "Monthly Amount")
     remaining = net_income - expenses_total - saving_total
+
+    # Retirement totals (employee saving + company match)
+    employee_retirement = float(st.session_state.get("pf_manual_retirement", 0.0) or 0.0)
+    company_match = float(st.session_state.get("pf_manual_match", 0.0) or 0.0)
+    total_retirement_contrib = employee_retirement + company_match
 
     # ---- Emergency Minimum ----
     ESSENTIAL_VARIABLE_KEYWORDS = [
@@ -307,8 +375,19 @@ def render_personal_finance_dashboard():
             top_l, top_r = st.columns(2, gap="medium")
             with top_l:
                 st.metric("Net Income (monthly)", _money(net_income))
-                if income_is == "Gross (before tax)" and float(tax_rate) > 0:
-                    st.metric("Estimated Taxes (monthly)", _money(est_tax))
+
+                if income_is == "Gross (before tax)":
+                    if st.session_state["pf_gross_mode"] == "Manual deductions":
+                        st.caption(
+                            f"Manual deductions applied: {_money(manual_deductions_total)} "
+                            f"(Company match tracked: {_money(company_match)})"
+                        )
+                        if company_match > 0 or employee_retirement > 0:
+                            st.caption(f"Total retirement contribution (employee + match): {_money(total_retirement_contrib)}")
+                    else:
+                        if float(tax_rate) > 0:
+                            st.caption(f"Estimated tax applied: {_money(est_tax)}")
+
             with top_r:
                 st.metric("Left Over (monthly)", _money(remaining))
 
@@ -435,10 +514,19 @@ def render_personal_finance_dashboard():
         "settings": {
             "income_is": income_is,
             "tax_rate_pct": float(tax_rate),
+            "gross_mode": st.session_state.get("pf_gross_mode"),
+        },
+        "gross_breakdown_optional": {
+            "taxes": float(st.session_state.get("pf_manual_taxes", 0.0) or 0.0),
+            "retirement_employee": float(st.session_state.get("pf_manual_retirement", 0.0) or 0.0),
+            "company_match": float(st.session_state.get("pf_manual_match", 0.0) or 0.0),
+            "benefits": float(st.session_state.get("pf_manual_benefits", 0.0) or 0.0),
+            "other_ssi": float(st.session_state.get("pf_manual_other_ssi", 0.0) or 0.0),
         },
         "monthly_cash_flow": {
             "total_income_entered": float(total_income),
             "estimated_taxes": float(est_tax),
+            "manual_deductions_total": float(manual_deductions_total),
             "net_income": float(net_income),
             "fixed_expenses": float(fixed_total),
             "variable_expenses": float(variable_total),
@@ -447,6 +535,7 @@ def render_personal_finance_dashboard():
             "left_over": float(remaining),
             "safe_to_spend_weekly": float(remaining / 4.33),
             "safe_to_spend_daily": float(remaining / 30.4),
+            "retirement_total_employee_plus_match": float(total_retirement_contrib),
         },
         "net_worth": {
             "assets_total": float(total_assets),
@@ -467,7 +556,14 @@ def render_personal_finance_dashboard():
             "fixed_included": float(fixed_total),
             "essential_variable_included": float(essential_variable),
             "debt_minimums_included": float(debt_minimums),
-            "keywords_used": ESSENTIAL_VARIABLE_KEYWORDS,
+            "keywords_used": [
+                "grocery", "groceries",
+                "electric", "electricity", "gas", "water", "sewer", "trash", "garbage",
+                "utility", "utilities",
+                "internet", "wifi", "phone", "cell",
+                "insurance", "medical", "health", "prescription", "rx",
+                "gasoline", "fuel", "transit", "train", "toll", "parking",
+            ],
         },
     }
 
