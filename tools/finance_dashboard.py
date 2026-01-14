@@ -475,41 +475,41 @@ def render_personal_finance_dashboard():
             st.markdown('<div id="pf-summary-card"></div>', unsafe_allow_html=True)
             st.markdown("### Your Summary")
 
-            tab_cash, tab_balance = st.tabs(["Cash Flow", "Net Worth"])
+            safe_weekly = remaining / 4.33
+            safe_daily = remaining / 30.4
 
-            with tab_cash:
-                safe_weekly = remaining / 4.33
-                safe_daily = remaining / 30.4
+            # HERO
+            h1, h2 = st.columns(2, gap="medium")
+            h1.metric("Net Income (monthly)", _money(net_income))
+            h2.metric("Total Outflow (monthly)", _money(total_outflow))
 
-                r1, r2 = st.columns(2, gap="medium")
-                r1.metric("Net Income (monthly)", _money(net_income))
-                r2.metric("Total Outflow (monthly)", _money(total_outflow))
+            st.markdown("#### Cash Buffer")
+            r1, r2 = st.columns(2, gap="medium")
+            r1.metric("Left Over (monthly)", _money(remaining))
+            r2.metric("Debt Payments (monthly)", _money(total_monthly_debt_payments))
 
-                c1, c2, c3 = st.columns(3, gap="medium")
-                c1.metric("Left Over (monthly)", _money(remaining))
-                c2.metric("Safe-to-spend (weekly)", _money(safe_weekly))
-                c3.metric("Safe-to-spend (daily)", _money(safe_daily))
+            st.markdown("#### Safe to Spend")
+            s1, s2 = st.columns(2, gap="medium")
+            s1.metric("Weekly", _money(safe_weekly))
+            s2.metric("Daily", _money(safe_daily))
 
-                s1, s2 = st.columns(2, gap="medium")
-                s1.metric("Saving (monthly)", _money(saving_total))
-                s2.metric("Investing (monthly)", _money(investing_display))
+            st.markdown("#### Saving & Investing")
+            si1, si2 = st.columns(2, gap="medium")
+            si1.metric("Saving (monthly)", _money(saving_total))
+            si2.metric("Investing (monthly)", _money(investing_display))
 
-                if remaining < 0:
-                    st.error("You're budgeting more than you're bringing in this month.")
-                elif remaining < 200:
-                    st.warning("This month is very tight — you don't have much buffer.")
-                else:
-                    st.success("You've got some breathing room this month!")
+            st.markdown("#### Net Worth")
+            nw1, nw2 = st.columns(2, gap="medium")
+            nw1.metric("Net Worth", _money(net_worth))
+            nw2.metric("Total Liabilities", _money(total_liabilities))
 
-            with tab_balance:
-                b1, b2 = st.columns(2, gap="medium")
-                b1.metric("Net Worth", _money(net_worth))
-                b2.metric("Total Liabilities", _money(total_liabilities))
-
-                d1, d2 = st.columns(2, gap="medium")
-                d1.metric("Debt Payments (monthly)", _money(total_monthly_debt_payments))
-                d2.metric("Total Assets", _money(total_assets))
-
+            # Status message
+            if remaining < 0:
+                st.error("You're budgeting more than you're bringing in this month.")
+            elif remaining < 200:
+                st.warning("This month is very tight — you don't have much buffer.")
+            else:
+                st.success("You've got some breathing room this month.")
 
     st.divider()
     st.subheader("🆘 Your Emergency Minimum")
