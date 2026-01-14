@@ -395,7 +395,22 @@ def render_personal_finance_dashboard():
                             unsafe_allow_html=True,
                         )
                         if company_match > 0 or employee_retirement > 0:
-                            st.caption(f"Total retirement contribution (employee + match): {_money(total_retirement_contrib)}")
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background: rgba(255,255,255,0.03);
+                                    border: 1px solid rgba(255,255,255,0.08);
+                                    border-radius: 8px;
+                                    padding: 6px 10px;
+                                    font-size: 0.85rem;
+                                    margin-top: 0.4rem;
+                                ">
+                                    <div>Total retirement contribution (employee + match): {_money(total_retirement_contrib)}</strong></div>
+                                    <div>Company match tracked: <strong>{_money(company_match)}</strong></div>
+                                </div>
+                                """,
+                            unsafe_allow_html=True,
+                            )
                     else:
                         if float(tax_rate) > 0:
                             st.caption(f"Estimated tax applied: {_money(est_tax)}")
