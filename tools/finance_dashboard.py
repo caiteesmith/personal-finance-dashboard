@@ -607,16 +607,16 @@ def render_personal_finance_dashboard():
 
                     bullets = []
 
-                    bullets.append("💰 Build/boost savings: Emergency fund, short-term goals, or sinking funds.")
-                    bullets.append("📈 Invest more: Brokerage, retirement, or HSA if you're not maxing them yet.")
+                    bullets.append("Build/boost savings: Emergency fund, short-term goals, or sinking funds.")
+                    bullets.append("Invest more: Brokerage, retirement, or HSA if you're not maxing them yet.")
 
                     if has_debt:
-                        bullets.append("🏦 Pay down debt faster: Extra principal on high-interest debt or your mortgage.")
+                        bullets.append("Pay down debt faster: Extra principal on high-interest debt or your mortgage.")
                     else:
-                        bullets.append("🏡 Invest toward future goals: Home upgrades, travel, FIRE, or long-term flexibility.")
+                        bullets.append("Invest toward future goals: Home upgrades, travel, FIRE, or long-term flexibility.")
 
-                    bullets.append("🎉 Spend intentionally: Guilt-free fun money that's already accounted for.")
-                    bullets.append("🔄 Reallocate later: It's okay to wait a month and decide once patterns emerge.")
+                    bullets.append("Spend intentionally: Guilt-free fun money that's already accounted for.")
+                    bullets.append("Reallocate later: It's okay to wait a month and decide once patterns emerge.")
 
                     for b in bullets:
                         st.markdown(f"- {b}")
