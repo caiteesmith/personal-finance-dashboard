@@ -488,13 +488,6 @@ def render_personal_finance_dashboard():
             with r5_r:
                 st.metric("Net Worth", _money(net_worth))
 
-            st.markdown(
-                f"<div style='font-size:0.85rem; opacity:0.7; margin-top: 0.25rem;'>"
-                f"Net worth = assets {_money(total_assets)} - liabilities {_money(total_liabilities)}"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-
             if remaining < 0:
                 st.error("You're budgeting more than you're bringing in this month.")
             elif remaining < 200:
