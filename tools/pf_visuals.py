@@ -5,11 +5,6 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
-# tools/pf_visuals.py
-from __future__ import annotations
-
-import plotly.graph_objects as go
-
 # CASHFLOW BREAKDOWN BAR CHART
 def cashflow_breakdown_chart(
     *,
@@ -133,7 +128,6 @@ def top_expenses_bar(fixed_df: pd.DataFrame, variable_df: pd.DataFrame):
 def debt_payments_vs_balances(debt_df: pd.DataFrame):
     df = debt_df.copy()
 
-    # Safer: handle missing columns gracefully (prevents KeyError if schema changes)
     needed = {"Debt", "Balance", "Monthly Payment"}
     missing = [c for c in needed if c not in df.columns]
     if missing:
