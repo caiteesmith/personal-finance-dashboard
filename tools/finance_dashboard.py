@@ -179,6 +179,35 @@ DEFAULT_LIABILITIES = [
 # Main UI
 # -------------------------
 def render_personal_finance_dashboard():
+    def _apply_pending_snapshot_if_any():
+        if not st.session_state.get("pf_has_pending_import"):
+            return
+
+        snap = st.session_state.get("pf_pending_snapshot")
+        if not isinstance(snap, dict):
+            st.session_state["pf_has_pending_import"] = False
+            st.session_state.pop("pf_pending_snapshot", None)
+            return
+
+        # ✅ Apply settings/tables/saved deduction values first
+        _load_snapshot_into_state(snap)  # keep your existing loader for tables + pf_manual_*
+
+        # ✅ Now safely set widget keys BEFORE widgets exist
+        gb = snap.get("gross_breakdown_optional", {}) or {}
+
+        st.session_state["pf_draft_taxes"] = float(gb.get("taxes", 0) or 0)
+        st.session_state["pf_draft_retirement"] = float(gb.get("retirement_employee", 0) or 0)
+        st.session_state["pf_draft_benefits"] = float(gb.get("benefits", 0) or 0)
+        st.session_state["pf_draft_other_ssi"] = float(gb.get("other_ssi", 0) or 0)
+        st.session_state["pf_draft_match"] = float(gb.get("company_match", 0) or 0)
+
+        # Clear pending import
+        st.session_state["pf_has_pending_import"] = False
+        st.session_state.pop("pf_pending_snapshot", None)
+
+    # 🔥 must run before ANY widgets are created
+    _apply_pending_snapshot_if_any()
+
     st.title("💸 Personal Finance Dashboard")
     st.caption(
         "A spreadsheet-style dashboard to track your personal monthly cash flow and net worth. "
@@ -1054,16 +1083,18 @@ def render_personal_finance_dashboard():
             try:
                 snapshot = json.load(uploaded)
                 if not isinstance(snapshot, dict) or "tables" not in snapshot:
-                    st.error("That file doesn’t look like a valid dashboard snapshot.")
+                    st.error("That file doesn't look like a valid dashboard snapshot.")
                 else:
-                    _load_snapshot_into_state(snapshot)
-                    st.success("Snapshot loaded! Restoring your dashboard…")
+                    # Queue it up for next run (before widgets exist)
+                    st.session_state["pf_pending_snapshot"] = snapshot
+                    st.session_state["pf_has_pending_import"] = True
+                    st.success("Snapshot queued — applying now…")
                     st.rerun()
             except Exception as e:
-                st.error(f"Couldn’t read that file: {e}")
+                st.error(f"Couldn't read that file: {e}")
 
     with st.expander("Reset all data", expanded=False):
-        st.warning("This clears the tool’s saved tables in this session.")
+        st.warning("This clears the tool's saved tables in this session.")
         if st.button("Reset now", type="primary", key="pf_reset_btn", width="stretch"):
             for k in list(st.session_state.keys()):
                 if k.startswith("pf_"):
