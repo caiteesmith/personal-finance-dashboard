@@ -949,7 +949,13 @@ def render_personal_finance_dashboard():
 
     cA, cB, cC = st.columns(3, gap="large")
     with cA:
-        _download_json_button("Download snapshot (JSON)", snapshot, "personal_finance_snapshot.json")
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        filename = f"personal_finance_snapshot_{timestamp}.json"
+        _download_json_button(
+            "Download snapshot (JSON)",
+            snapshot,
+            filename,
+        )    
     with cB:
         combined = pd.concat(
             [
