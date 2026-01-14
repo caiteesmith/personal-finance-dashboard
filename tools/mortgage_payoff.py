@@ -362,8 +362,10 @@ def render_mortgage_payoff_calculator():
                 extra_monthly=float(extra_monthly),
                 extra_one_time=float(extra_one_time),
                 extra_one_time_month_index=int(extra_one_time_month),
-                max_months=2000,  # generous safety cap
+                max_months=2000,
             )
+
+            months = result.months
 
             baseline_result = build_amortization_schedule(
                 principal=float(principal),
@@ -380,7 +382,7 @@ def render_mortgage_payoff_calculator():
             baseline_interest = float(baseline_result.total_interest)
 
             interest_saved = max(0.0, baseline_interest - float(result.total_interest))
-            months_saved = max(0, baseline_months - int(months))
+            months_saved = max(0, baseline_months - int(result.months))
 
             baseline_payoff_date = baseline_result.payoff_date
         except ValueError as e:
