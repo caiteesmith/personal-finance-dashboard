@@ -192,7 +192,11 @@ def render_personal_finance_dashboard():
     _ensure_df("pf_liabilities_df", DEFAULT_LIABILITIES)
 
     # ---- Settings ----
-    with st.expander("Settings", expanded=False):
+    with st.expander("Income Settings & Tax/Deduction Options", expanded=False):
+        st.caption(
+            "Choose whether your income is entered as net or gross. "
+            "If you enter gross income, you can estimate taxes or define exact monthly deductions below."
+        )
         c1, c2, c3 = st.columns([1, 1, 1], gap="large")
         with c1:
             month_label = st.text_input("Month label", key="pf_month_label")
@@ -212,9 +216,13 @@ def render_personal_finance_dashboard():
                 key="pf_income_is",
             )
 
-    # ---- Optional Gross Breakdown ----
+    # ---- Gross Breakdown ----
     if income_is == "Gross (before tax)":
-        st.subheader("Optional: Gross Income Breakdown")
+        st.subheader("Gross Income Breakdown (Optional)")
+        st.caption(
+            "Use this section only if your income is entered as gross. "
+            "You can estimate taxes or enter exact monthly deductions for more accurate cash flow."
+        )
         st.radio(
             "How should we calculate net income?",
             ["Estimate (tax rate)", "Manual deductions"],
