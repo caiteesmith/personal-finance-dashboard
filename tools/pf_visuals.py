@@ -57,7 +57,7 @@ def cashflow_breakdown_chart(
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=0,
+            y=1.02,
             xanchor="left",
             x=0,
         ),

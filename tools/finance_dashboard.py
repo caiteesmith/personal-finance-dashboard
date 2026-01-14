@@ -487,7 +487,7 @@ def render_personal_finance_dashboard():
     # ---- Summary UI ----
     def _section(title: str):
         st.markdown(
-            f"<div style='font-size:0.85rem; letter-spacing:.06em; text-transform:uppercase; opacity:.70; margin: 0.2rem 0 0.6rem 0;'>{title}</div>",
+            f"<div style='font-size:0.85rem; letter-spacing:.06em; text-transform:uppercase; opacity:.70; margin: 0 0 0.6rem 0;'>{title}</div>",
             unsafe_allow_html=True,
         )
 
