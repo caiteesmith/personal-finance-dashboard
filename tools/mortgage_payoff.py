@@ -259,8 +259,14 @@ def render_mortgage_payoff_calculator():
                 key="mtg_home_value",
                 help="Used to estimate when PMI can drop off (80% LTV). Set to 0 to disable PMI drop-off logic.",
             )
-            apr = st.number_input("Interest rate (APR %)", min_value=0.0, max_value=30.0, step=0.125, key="mtg_apr")
-
+            apr = st.number_input(
+                "Interest rate (APR %)",
+                min_value=0.0,
+                max_value=30.0,
+                step=0.125,
+                format="%.4f",
+                key="mtg_apr",
+            )
             st.radio(
                 "Payment mode",
                 ["Calculate my payment (term-based)", "I know my monthly payment"],
