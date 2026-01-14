@@ -10,7 +10,7 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
-
+import math
 
 # -------------------------
 # Helpers
@@ -24,6 +24,10 @@ def _to_float(x) -> float:
         return float(x)
     except Exception:
         return 0.0
+
+def _ceil_cents(x: float) -> float:
+    # Always round UP to the nearest cent so term-based payoff doesn't spill into month 361
+    return math.ceil(float(x) * 100.0 - 1e-9) / 100.0
 
 
 def _add_months(d: date, months: int) -> date:
@@ -266,7 +270,8 @@ def render_mortgage_payoff_calculator():
 
             if st.session_state["mtg_mode"] == "Calculate my payment (term-based)":
                 term_years = st.number_input("Term (years)", min_value=1, max_value=50, step=1, key="mtg_term_years")
-                calc_payment = round(_monthly_payment(principal, apr, int(term_years)), 2)
+                raw_payment = _monthly_payment(principal, apr, int(term_years))
+                calc_payment = _ceil_cents(raw_payment)
                 st.info(f"Estimated monthly payment (principal + interest): **{_money(calc_payment)}**")
                 monthly_payment = calc_payment
             else:
