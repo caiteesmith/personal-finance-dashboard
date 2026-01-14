@@ -576,7 +576,7 @@ def render_personal_finance_dashboard():
             c5, c6 = st.columns(2, gap="medium")
             c5.metric("Total Expenses", _money(total_outflow))
             c6.metric(
-                "Percentage of Income Invested",
+                "`%` of Gross Income Invested",
                 _pct(investing_rate_of_gross),
                 help="Investing divided by total pre-tax income."
             )
