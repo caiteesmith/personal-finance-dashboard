@@ -534,6 +534,10 @@ def render_personal_finance_dashboard():
     company_match = float(st.session_state.get("pf_manual_match", 0.0) or 0.0)
     total_retirement_contrib = employee_retirement + company_match
 
+    # -------------------------
+    # DATA VISUALIZATIONS
+    # -------------------------
+
     def spending_mix_donut(
         expenses: float,
         debt: float,
@@ -570,8 +574,14 @@ def render_personal_finance_dashboard():
         )
 
         fig.update_layout(
+            title=dict(
+                text="Monthly Cash Flow Breakdown",
+                x=0,
+                xanchor="left",
+                font=dict(size=16),
+            ),
             height=280,
-            margin=dict(t=20, b=20, l=20, r=20),
+            margin=dict(t=50, b=20, l=20, r=20),
             showlegend=True,
         )
 
@@ -603,39 +613,16 @@ def render_personal_finance_dashboard():
         )
 
         fig.update_layout(
+            title=dict(
+                text="Top Monthly Expenses",
+                x=0,
+                xanchor="left",
+                font=dict(size=16),
+            ),
             height=300,
-            margin=dict(l=120, r=20, t=20, b=20),
+            margin=dict(l=120, r=20, t=50, b=20),
             xaxis=dict(tickprefix="$", separatethousands=True),
             yaxis=dict(autorange="reversed"),
-        )
-
-        return fig
-    
-    def debt_payments_vs_balances(debt_df: pd.DataFrame):
-        df = debt_df.copy()
-        df = df[(df["Balance"] > 0) | (df["Monthly Payment"] > 0)]
-
-        fig = go.Figure()
-
-        fig.add_bar(
-            x=df["Debt"],
-            y=df["Monthly Payment"],
-            name="Monthly Payment",
-            hovertemplate="%{x}<br>Payment: $%{y:,.0f}<extra></extra>",
-        )
-
-        fig.add_bar(
-            x=df["Debt"],
-            y=df["Balance"],
-            name="Balance",
-            hovertemplate="%{x}<br>Balance: $%{y:,.0f}<extra></extra>",
-        )
-
-        fig.update_layout(
-            barmode="group",
-            height=300,
-            margin=dict(l=20, r=20, t=20, b=40),
-            yaxis=dict(tickprefix="$", separatethousands=True),
         )
 
         return fig
@@ -882,6 +869,47 @@ def render_personal_finance_dashboard():
             st.rerun()
 
     st.metric("Total Monthly Debt Payments", _money(total_monthly_debt_payments))
+
+    def debt_payments_vs_balances(debt_df: pd.DataFrame):
+        df = debt_df.copy()
+        df = df[(df["Balance"] > 0) | (df["Monthly Payment"] > 0)]
+
+        fig = go.Figure()
+
+        fig.add_bar(
+            x=df["Debt"],
+            y=df["Monthly Payment"],
+            name="Monthly Payment",
+            hovertemplate="%{x}<br>Payment: $%{y:,.0f}<extra></extra>",
+        )
+
+        fig.add_bar(
+            x=df["Debt"],
+            y=df["Balance"],
+            name="Balance",
+            hovertemplate="%{x}<br>Balance: $%{y:,.0f}<extra></extra>",
+        )
+
+        fig.update_layout(
+            title=dict(
+                text="Debt Payments vs. Outstanding Balances",
+                x=0,
+                xanchor="left",
+                font=dict(size=16),
+            ),
+            barmode="group",
+            height=300,
+            margin=dict(l=20, r=20, t=50, b=40),
+            yaxis=dict(tickprefix="$", separatethousands=True),
+        )
+
+        return fig
+    
+    st.subheader("Visual Overview")
+    st.plotly_chart(
+        debt_payments_vs_balances(st.session_state["pf_debt_df"]),
+        use_container_width=True,
+    )
 
     st.divider()
 
