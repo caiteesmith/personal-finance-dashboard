@@ -115,11 +115,16 @@ DEFAULT_VARIABLE = [
 ]
 
 DEFAULT_SAVING = [
-    {"Bucket": "Retirement", "Monthly Amount": 0.0, "Notes": ""},
-    {"Bucket": "Brokerage", "Monthly Amount": 0.0, "Notes": ""},
     {"Bucket": "Emergency fund", "Monthly Amount": 0.0, "Notes": ""},
     {"Bucket": "HSA", "Monthly Amount": 0.0, "Notes": ""},
     {"Bucket": "Travel", "Monthly Amount": 0.0, "Notes": ""},
+    {"Bucket": "Cash savings", "Monthly Amount": 0.0, "Notes": ""},
+]
+
+DEFAULT_INVESTING = [
+    {"Bucket": "Brokerage", "Monthly Amount": 0.0, "Notes": ""},
+    {"Bucket": "Retirement", "Monthly Amount": 0.0, "Notes": ""},
+    {"Bucket": "HSA", "Monthly Amount": 0.0, "Notes": ""},
 ]
 
 DEFAULT_DEBT = [
@@ -172,6 +177,7 @@ def render_personal_finance_dashboard():
     _ensure_df("pf_fixed_df", DEFAULT_FIXED)
     _ensure_df("pf_variable_df", DEFAULT_VARIABLE)
     _ensure_df("pf_saving_df", DEFAULT_SAVING)
+    _ensure_df("pf_investing_df", DEFAULT_INVESTING)
     _ensure_df("pf_debt_df", DEFAULT_DEBT)
     _ensure_df("pf_assets_df", DEFAULT_ASSETS)
     _ensure_df("pf_liabilities_df", DEFAULT_LIABILITIES)
@@ -312,25 +318,49 @@ def render_personal_finance_dashboard():
                     )
 
         with tab_save:
-            st.write("Monthly contributions you want to make (Retirement, brokerage, emergency fund, etc.).")
+            st.write("Monthly contributions you want to make.")
 
-            with st.form("pf_saving_form", border=False):
-                saving_edit = st.data_editor(
-                    st.session_state["pf_saving_df"],
-                    num_rows="dynamic",
-                    use_container_width=True,
-                    key="pf_saving_editor",
-                    column_config={
-                        "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
-                    },
-                )
-                saved_saving = st.form_submit_button("Save saving/investing", use_container_width=True)
-                if saved_saving:
-                    st.session_state["pf_saving_df"] = _sanitize_editor_df(
-                        saving_edit,
-                        expected_cols=["Bucket", "Monthly Amount", "Notes"],
-                        numeric_cols=["Monthly Amount"],
+            s_col, i_col = st.columns(2, gap="large")
+
+            with s_col:
+                st.markdown("**Saving**")
+                with st.form("pf_saving_form", border=False):
+                    saving_edit = st.data_editor(
+                        st.session_state["pf_saving_df"],
+                        num_rows="dynamic",
+                        use_container_width=True,
+                        hide_index=True,
+                        key="pf_saving_editor",
+                        column_config={
+                            "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
+                        },
                     )
+                    if st.form_submit_button("Save saving", use_container_width=True):
+                        st.session_state["pf_saving_df"] = _sanitize_editor_df(
+                            saving_edit,
+                            expected_cols=["Bucket", "Monthly Amount", "Notes"],
+                            numeric_cols=["Monthly Amount"],
+                        )
+
+            with i_col:
+                st.markdown("**Investing**")
+                with st.form("pf_investing_form", border=False):
+                    investing_edit = st.data_editor(
+                        st.session_state["pf_investing_df"],
+                        num_rows="dynamic",
+                        use_container_width=True,
+                        hide_index=True,
+                        key="pf_investing_editor",
+                        column_config={
+                            "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
+                        },
+                    )
+                    if st.form_submit_button("Save investing", use_container_width=True):
+                        st.session_state["pf_investing_df"] = _sanitize_editor_df(
+                            investing_edit,
+                            expected_cols=["Bucket", "Monthly Amount", "Notes"],
+                            numeric_cols=["Monthly Amount"],
+                        )
 
     # ---- Calculations ----
     income_df = st.session_state["pf_income_df"]
@@ -338,6 +368,16 @@ def render_personal_finance_dashboard():
     variable_df = st.session_state["pf_variable_df"]
     saving_df = st.session_state["pf_saving_df"]
     debt_df = st.session_state["pf_debt_df"]
+
+    # --- Net worth + debt summary ---
+    assets_df = st.session_state["pf_assets_df"]
+    liabilities_df = st.session_state["pf_liabilities_df"]
+
+    total_assets = _sum_df(assets_df, "Value")
+    total_liabilities = _sum_df(liabilities_df, "Value")
+    net_worth = total_assets - total_liabilities
+
+    total_monthly_debt_payments = _sum_df(debt_df, "Monthly Payment")
 
     total_income = _sum_df(income_df, "Monthly Amount")
 
@@ -363,9 +403,14 @@ def render_personal_finance_dashboard():
     fixed_total = _sum_df(fixed_df, "Monthly Amount")
     variable_total = _sum_df(variable_df, "Monthly Amount")
     expenses_total = fixed_total + variable_total
+    saving_df = st.session_state["pf_saving_df"]
+    investing_df = st.session_state["pf_investing_df"]
 
     saving_total = _sum_df(saving_df, "Monthly Amount")
-    remaining = net_income - expenses_total - saving_total
+    investing_total = _sum_df(investing_df, "Monthly Amount")
+
+    total_saving_and_investing = saving_total + investing_total
+    remaining = net_income - expenses_total - total_saving_and_investing
 
     # Retirement totals (employee saving + company match)
     employee_retirement = float(st.session_state.get("pf_manual_retirement", 0.0) or 0.0)
@@ -417,71 +462,51 @@ def render_personal_finance_dashboard():
         unsafe_allow_html=True,
     )
 
-    # ---- Summary UI ----
+   # ---- Summary UI ----
     with right:
         with st.container(border=True):
             st.markdown('<div id="pf-summary-card"></div>', unsafe_allow_html=True)
             st.markdown("### Your Summary")
 
-            top_l, top_r = st.columns(2, gap="medium")
-            with top_l:
+            r1_l, r1_r = st.columns(2, gap="medium")
+            with r1_l:
                 st.metric("Net Income (monthly)", _money(net_income))
-
-            #     if income_is == "Gross (before tax)":
-            #         if st.session_state["pf_gross_mode"] == "Manual deductions":
-            #             st.markdown(
-            #                 f"""
-            #                 <div style="
-            #                     background: rgba(255,255,255,0.03);
-            #                     border: 1px solid rgba(255,255,255,0.08);
-            #                     border-radius: 8px;
-            #                     padding: 6px 10px;
-            #                     font-size: 0.85rem;
-            #                     margin-top: 0.4rem;
-            #                 ">
-            #                     <div>Manual deductions applied: <strong>{_money(manual_deductions_total)}</strong></div>
-            #                     <div>Company match tracked: <strong>{_money(company_match)}</strong></div>
-            #                 </div>
-            #                 """,
-            #                 unsafe_allow_html=True,
-            #             )
-            #             if company_match > 0 or employee_retirement > 0:
-            #                 st.markdown(
-            #                     f"""
-            #                     <div style="
-            #                         background: rgba(255,255,255,0.03);
-            #                         border: 1px solid rgba(255,255,255,0.08);
-            #                         border-radius: 8px;
-            #                         padding: 6px 10px;
-            #                         font-size: 0.85rem;
-            #                         margin-top: 0.4rem;
-            #                     ">
-            #                         <div>Total retirement contribution: {_money(total_retirement_contrib)}</strong></div>
-            #                     </div>
-            #                     """,
-            #                 unsafe_allow_html=True,
-            #                 )
-            #         else:
-            #             if float(tax_rate) > 0:
-            #                 st.caption(f"Estimated tax applied: {_money(est_tax)}")
-
-            with top_r:
+            with r1_r:
                 st.metric("Left Over (monthly)", _money(remaining))
 
-            mid_l, mid_r = st.columns(2, gap="medium")
-            with mid_l:
+            r2_l, r2_r = st.columns(2, gap="medium")
+            with r2_l:
                 st.metric("Total Expenses (monthly)", _money(expenses_total))
-            with mid_r:
-                st.metric("Saving/Investing (monthly)", _money(saving_total))
+            with r2_r:
+                st.metric("Total Liabilities", _money(total_liabilities))
+
+            r3_l, r3_r = st.columns(2, gap="medium")
+            with r3_l:
+                st.metric("Saving (monthly)", _money(saving_total))
+            with r3_r:
+                st.metric("Investing (monthly)", _money(investing_total))
 
             safe_weekly = remaining / 4.33
             safe_daily = remaining / 30.4
 
-            bot_l, bot_r = st.columns(2, gap="medium")
-            with bot_l:
+            r4_l, r4_r = st.columns(2, gap="medium")
+            with r4_l:
                 st.metric("Safe-to-spend (weekly)", _money(safe_weekly))
-            with bot_r:
+            with r4_r:
                 st.metric("Safe-to-spend (daily)", _money(safe_daily))
+
+            r5_l, r5_r = st.columns(2, gap="medium")
+            with r5_l:
+                st.metric("Debt Payments (monthly)", _money(total_monthly_debt_payments))
+            with r5_r:
+                st.metric("Net Worth", _money(net_worth))
+
+            st.markdown(
+                f"<div style='font-size:0.85rem; opacity:0.7; margin-top: 0.25rem;'>"
+                f"Net worth = assets {_money(total_assets)} − liabilities {_money(total_liabilities)}"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
 
             if remaining < 0:
                 st.error("You're budgeting more than you're bringing in this month.")
@@ -636,6 +661,7 @@ def render_personal_finance_dashboard():
             "fixed_expenses": st.session_state["pf_fixed_df"].to_dict(orient="records"),
             "variable_expenses": st.session_state["pf_variable_df"].to_dict(orient="records"),
             "saving": st.session_state["pf_saving_df"].to_dict(orient="records"),
+            "investing": st.session_state["pf_investing_df"].to_dict(orient="records"),
             "assets": st.session_state["pf_assets_df"].to_dict(orient="records"),
             "liabilities": st.session_state["pf_liabilities_df"].to_dict(orient="records"),
             "debt_details": st.session_state["pf_debt_df"].to_dict(orient="records"),
@@ -643,6 +669,8 @@ def render_personal_finance_dashboard():
         "emergency_minimum": {
             "monthly": float(emergency_minimum_monthly),
             "fixed_included": float(fixed_total),
+            "saving_monthly": float(saving_total),
+            "investing_monthly": float(investing_total),
             "essential_variable_included": float(essential_variable),
             "debt_minimums_included": float(debt_minimums),
             "keywords_used": [
