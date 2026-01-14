@@ -481,6 +481,8 @@ def render_personal_finance_dashboard():
             with r1_r:
                 st.metric("Total Expenses (monthly)", _money(total_outflow))
 
+            st.divider()
+
             r2_l, r2_r = st.columns(2, gap="medium")
             with r2_l:
                 st.metric("Left Over (monthly)", _money(remaining))
@@ -501,6 +503,8 @@ def render_personal_finance_dashboard():
                 st.metric("Saving (monthly)", _money(saving_total))
             with r4_r:
                 st.metric("Investing (monthly)", _money(investing_display))
+
+            st.divider()
 
             r5_l, r5_r = st.columns(2, gap="medium")
             with r5_l:
