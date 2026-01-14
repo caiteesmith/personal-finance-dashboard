@@ -13,7 +13,7 @@ def main():
     st.set_page_config(page_title="The Financial Breakdown", layout="wide")
 
     # Sidebar navigation (new)
-    st.sidebar.title("Navigation")
+    st.sidebar.title("The Financial Breakdown")
     page = st.sidebar.radio(
         "Go to",
         ["Personal Finance Dashboard", "Mortgage Payoff Calculator"],
