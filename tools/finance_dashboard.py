@@ -542,6 +542,7 @@ def render_personal_finance_dashboard():
         )
         st.plotly_chart(fig, width="stretch")
 
+        # ---- Summary section ----
         with st.container(border=True):
             _section("Income")
             c1, c2 = st.columns(2, gap="medium")
@@ -551,7 +552,7 @@ def render_personal_finance_dashboard():
         st.write("")
 
         with st.container(border=True):
-            _section("Outflows")
+            _section("Expenses")
             c1, c2 = st.columns(2, gap="medium")
             c1.metric("Living Expenses", _money(expenses_total))
             c2.metric("Debt Payments", _money(total_monthly_debt_payments))
