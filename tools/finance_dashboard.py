@@ -589,9 +589,7 @@ def render_personal_finance_dashboard():
             c3, _ = st.columns(2, gap="medium")
             c3.metric("Daily", _money(remaining / 30.4))
 
-            with st.expander("Options for Remaining Income", expanded=False):
-                _section("What You Can Do With the Remaining")
-
+            with st.expander("What You Can Do With the Remaining", expanded=False):
                 st.caption(
                     "This is optional guidance — there's no single right answer. "
                     "Use what fits your goals and current season of life."
