@@ -16,10 +16,6 @@ def cashflow_breakdown_chart(
     saving: float,
     investing_cashflow: float,
 ):
-    """
-    Single stacked bar showing where monthly income goes.
-    - If spending exceeds income, shows 'Over budget' instead of negative remainder.
-    """
     net_income = float(net_income or 0.0)
     living_expenses = max(float(living_expenses or 0.0), 0.0)
     debt_payments = max(float(debt_payments or 0.0), 0.0)
@@ -39,7 +35,6 @@ def cashflow_breakdown_chart(
         labels.append("Over budget")
         values.append(over_budget_value)
 
-    # Ensure we never end up with Plotly's weird -1..1 default range
     max_x = max(net_income, total_outflow, 1.0)
 
     fig = go.Figure()
@@ -56,9 +51,9 @@ def cashflow_breakdown_chart(
 
     fig.update_layout(
         barmode="stack",
-        height=96,
-        # more bottom room so the labels don't feel glued to the bar
-        margin=dict(l=0, r=0, t=8, b=34),
+        height=102,
+        # extra bottom space so labels breathe
+        margin=dict(l=0, r=0, t=8, b=40),
 
         showlegend=True,
         legend=dict(
@@ -79,12 +74,15 @@ def cashflow_breakdown_chart(
             showgrid=False,
             zeroline=False,
             fixedrange=True,
+
             automargin=False,
             domain=[0, 1],
+
             ticklabelposition="outside",
-            ticklabelstandoff=14,
             ticks="outside",
-            ticklen=4,
+            ticklen=6,
+
+            ticklabelstandoff=14,
         ),
 
         yaxis=dict(
@@ -97,7 +95,6 @@ def cashflow_breakdown_chart(
         ),
     )
 
-    # remove bar outlines
     fig.update_traces(marker=dict(line=dict(width=0)))
 
     return fig, total_outflow, remaining
