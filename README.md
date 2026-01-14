@@ -10,11 +10,12 @@ The goal is to break everything down and put it all in one place, so you can see
 
 In other words: *Break down the numbers before they break YOU down.*
 
-![Screenshot of Personal Finance Dashboard](assets/personal-finance-dashboard.png)
-
 ---
 
-## What’s Inside
+# What’s Inside
+## 💸 Personal Finance Dashboard
+
+![Screenshot of Personal Finance Dashboard](assets/personal-finance-dashboard.png)
 
 ### Monthly Cash Flow
 This is the heart of the app.
