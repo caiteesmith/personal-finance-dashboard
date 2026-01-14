@@ -290,9 +290,8 @@ def render_mortgage_payoff_calculator():
                 monthly_payment = float(st.session_state["mtg_payment_manual"] or 0.0)
 
             st.divider()
-            with st.expander:
-                st.subheader("Monthly housing costs (optional)")
-
+            
+            with st.expander("Monthly housing costs (optional)", expanded=False):
                 st.session_state.setdefault("mtg_taxes", 0.0)
                 st.session_state.setdefault("mtg_insurance", 0.0)
                 st.session_state.setdefault("mtg_pmi", 0.0)
@@ -331,9 +330,7 @@ def render_mortgage_payoff_calculator():
 
             st.divider()
 
-            with st.expander:
-                st.subheader("Extra payments (optional)")
-
+            with st.expander("Extra payments (optional)", expanded=False):
                 extra_monthly = st.number_input(
                     "Extra monthly (toward principal)",
                     min_value=0.0,
