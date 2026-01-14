@@ -424,8 +424,8 @@ def render_personal_finance_dashboard():
             st.markdown("### Your Summary")
 
             top_l, top_r = st.columns(2, gap="medium")
-            # with top_l:
-            #     st.metric("Net Income (monthly)", _money(net_income))
+            with top_l:
+                st.metric("Net Income (monthly)", _money(net_income))
 
             #     if income_is == "Gross (before tax)":
             #         if st.session_state["pf_gross_mode"] == "Manual deductions":
