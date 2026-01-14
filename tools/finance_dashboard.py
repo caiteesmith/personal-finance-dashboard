@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import Dict, List
 
 import pandas as pd
-import plotly.graph_objects as go
 import re
 import streamlit as st
 
@@ -34,7 +33,7 @@ def _download_json_button(label: str, payload: Dict, filename: str):
         data=s,
         file_name=filename,
         mime="application/json",
-        use_container_width=True,
+        width="stretch",
     )
 
 
@@ -44,7 +43,7 @@ def _download_csv_button(label: str, df: pd.DataFrame, filename: str):
         data=df.to_csv(index=False),
         file_name=filename,
         mime="text/csv",
-        use_container_width=True,
+        width="stretch",
     )
 
 
@@ -238,18 +237,8 @@ def render_personal_finance_dashboard():
                     st.number_input("Benefits (monthly)", min_value=0.0, step=25.0, key="pf_manual_benefits")
 
                 with g2:
-                    st.number_input(
-                        "Retirement (employee, monthly)",
-                        min_value=0.0,
-                        step=50.0,
-                        key="pf_manual_retirement",
-                    )
-                    st.number_input(
-                        "Other/SSI (monthly)",
-                        min_value=0.0,
-                        step=25.0,
-                        key="pf_manual_other_ssi",
-                    )
+                    st.number_input("Retirement (employee, monthly)", min_value=0.0, step=50.0, key="pf_manual_retirement")
+                    st.number_input("Other/SSI (monthly)", min_value=0.0, step=25.0, key="pf_manual_other_ssi")
 
                 with g3:
                     st.number_input(
@@ -260,7 +249,7 @@ def render_personal_finance_dashboard():
                         help="Tracked as extra retirement contribution; does not reduce take-home.",
                     )
 
-                if st.form_submit_button("Save gross breakdown", use_container_width=True):
+                if st.form_submit_button("Save gross breakdown", width="stretch"):
                     st.success("Saved.")
                     st.rerun()
         else:
@@ -281,14 +270,14 @@ def render_personal_finance_dashboard():
                 income_edit = st.data_editor(
                     st.session_state["pf_income_df"],
                     num_rows="dynamic",
-                    use_container_width=True,
                     hide_index=True,
+                    width="stretch",
                     key="pf_income_editor",
                     column_config={
                         "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=50.0, format="%.2f"),
                     },
                 )
-                if st.form_submit_button("Save income", use_container_width=True):
+                if st.form_submit_button("Save income", width="stretch"):
                     st.session_state["pf_income_df"] = _sanitize_editor_df(
                         income_edit,
                         expected_cols=["Source", "Monthly Amount", "Notes"],
@@ -304,14 +293,14 @@ def render_personal_finance_dashboard():
                 fixed_edit = st.data_editor(
                     st.session_state["pf_fixed_df"],
                     num_rows="dynamic",
-                    use_container_width=True,
                     hide_index=True,
+                    width="stretch",
                     key="pf_fixed_editor",
                     column_config={
                         "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
                     },
                 )
-                if st.form_submit_button("Save fixed expenses", use_container_width=True):
+                if st.form_submit_button("Save fixed expenses", width="stretch"):
                     st.session_state["pf_fixed_df"] = _sanitize_editor_df(
                         fixed_edit,
                         expected_cols=["Expense", "Monthly Amount", "Notes"],
@@ -324,14 +313,14 @@ def render_personal_finance_dashboard():
                 variable_edit = st.data_editor(
                     st.session_state["pf_variable_df"],
                     num_rows="dynamic",
-                    use_container_width=True,
                     hide_index=True,
+                    width="stretch",
                     key="pf_variable_editor",
                     column_config={
                         "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
                     },
                 )
-                if st.form_submit_button("Save variable expenses", use_container_width=True):
+                if st.form_submit_button("Save variable expenses", width="stretch"):
                     st.session_state["pf_variable_df"] = _sanitize_editor_df(
                         variable_edit,
                         expected_cols=["Expense", "Monthly Amount", "Notes"],
@@ -349,14 +338,14 @@ def render_personal_finance_dashboard():
                     saving_edit = st.data_editor(
                         st.session_state["pf_saving_df"],
                         num_rows="dynamic",
-                        use_container_width=True,
                         hide_index=True,
+                        width="stretch",
                         key="pf_saving_editor",
                         column_config={
                             "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
                         },
                     )
-                    if st.form_submit_button("Save saving", use_container_width=True):
+                    if st.form_submit_button("Save saving", width="stretch"):
                         st.session_state["pf_saving_df"] = _sanitize_editor_df(
                             saving_edit,
                             expected_cols=["Bucket", "Monthly Amount", "Notes"],
@@ -370,14 +359,14 @@ def render_personal_finance_dashboard():
                     investing_edit = st.data_editor(
                         st.session_state["pf_investing_df"],
                         num_rows="dynamic",
-                        use_container_width=True,
                         hide_index=True,
+                        width="stretch",
                         key="pf_investing_editor",
                         column_config={
                             "Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f"),
                         },
                     )
-                    if st.form_submit_button("Save investing", use_container_width=True):
+                    if st.form_submit_button("Save investing", width="stretch"):
                         st.session_state["pf_investing_df"] = _sanitize_editor_df(
                             investing_edit,
                             expected_cols=["Bucket", "Monthly Amount", "Notes"],
@@ -386,7 +375,7 @@ def render_personal_finance_dashboard():
                         st.rerun()
 
     # -------------------------
-    # CALCULATIONS (after editors, using latest session_state)
+    # CALCULATIONS (after editors)
     # -------------------------
     income_df = st.session_state["pf_income_df"]
     fixed_df = st.session_state["pf_fixed_df"]
@@ -399,7 +388,6 @@ def render_personal_finance_dashboard():
 
     total_income = _sum_df(income_df, "Monthly Amount")
 
-    # Net income
     est_tax = 0.0
     manual_deductions_total = 0.0
     net_income = total_income
@@ -425,7 +413,7 @@ def render_personal_finance_dashboard():
     investing_total = _sum_df(investing_df, "Monthly Amount")
 
     investing_display = investing_total
-    investing_cashflow = investing_total  # cash leaving checking/budget this month
+    investing_cashflow = investing_total
 
     manual_retirement = 0.0
     company_match = 0.0
@@ -433,11 +421,7 @@ def render_personal_finance_dashboard():
     if income_is == "Gross (before tax)" and st.session_state.get("pf_gross_mode") == "Manual deductions":
         manual_retirement = float(st.session_state.get("pf_manual_retirement", 0.0) or 0.0)
         company_match = float(st.session_state.get("pf_manual_match", 0.0) or 0.0)
-
-        # display includes retirement + match
         investing_display = investing_total + manual_retirement + company_match
-
-        # cashflow only includes employee retirement (match doesn't reduce take-home)
         investing_cashflow = investing_total + manual_retirement
 
     total_monthly_debt_payments = _sum_df(debt_df, "Monthly Payment")
@@ -455,7 +439,7 @@ def render_personal_finance_dashboard():
     total_retirement_contrib = employee_retirement + company_match
 
     # -------------------------
-    # SNAPSHOT CHART (now safe — variables exist)
+    # SNAPSHOT CHART
     # -------------------------
     st.subheader("This Month at a Glance")
     fig, _, _ = cashflow_breakdown_chart(
@@ -465,10 +449,10 @@ def render_personal_finance_dashboard():
         saving=saving_total,
         investing_cashflow=investing_cashflow,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # -------------------------
-    # VISUAL OVERVIEW (now safe — variables exist)
+    # VISUAL OVERVIEW
     # -------------------------
     render_visual_overview(
         expenses_total=expenses_total,
@@ -483,27 +467,11 @@ def render_personal_finance_dashboard():
 
     # ---- Emergency Minimum ----
     ESSENTIAL_VARIABLE_KEYWORDS = [
-        "grocery",
-        "groceries",
-        "electric",
-        "electricity",
-        "natural gas",
-        "water",
-        "sewer",
-        "trash",
-        "garbage",
-        "utility",
-        "utilities",
-        "internet",
-        "wifi",
-        "phone",
-        "cell",
-        "insurance",
-        "medical",
-        "health",
-        "prescription",
-        "rx",
-        "medicine",
+        "grocery", "groceries",
+        "electric", "electricity", "natural gas", "water", "sewer", "trash", "garbage",
+        "utility", "utilities",
+        "internet", "wifi", "phone", "cell",
+        "insurance", "medical", "health", "prescription", "rx", "medicine",
     ]
 
     essential_variable = _sum_by_keywords(
@@ -526,7 +494,6 @@ def render_personal_finance_dashboard():
     with right:
         st.markdown("### Summary")
 
-        # Income
         with st.container(border=True):
             _section("Income")
             c1, c2 = st.columns(2, gap="medium")
@@ -535,7 +502,6 @@ def render_personal_finance_dashboard():
 
         st.write("")
 
-        # Outflows
         with st.container(border=True):
             _section("Outflows")
             c1, c2 = st.columns(2, gap="medium")
@@ -552,7 +518,6 @@ def render_personal_finance_dashboard():
 
         st.write("")
 
-        # Remaining
         with st.container(border=True):
             _section("Remaining")
             c1, c2 = st.columns(2, gap="medium")
@@ -563,7 +528,6 @@ def render_personal_finance_dashboard():
 
         st.write("")
 
-        # Net Worth
         with st.container(border=True):
             _section("Net Worth")
             c1, c2 = st.columns(2, gap="medium")
@@ -597,14 +561,14 @@ def render_personal_finance_dashboard():
             assets_edit = st.data_editor(
                 st.session_state["pf_assets_df"],
                 num_rows="dynamic",
-                use_container_width=True,
                 hide_index=True,
+                width="stretch",
                 key="pf_assets_editor",
                 column_config={
                     "Value": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f"),
                 },
             )
-            if st.form_submit_button("Save assets", use_container_width=True):
+            if st.form_submit_button("Save assets", width="stretch"):
                 st.session_state["pf_assets_df"] = _sanitize_editor_df(
                     assets_edit,
                     expected_cols=["Asset", "Value", "Notes"],
@@ -618,14 +582,14 @@ def render_personal_finance_dashboard():
             liabilities_edit = st.data_editor(
                 st.session_state["pf_liabilities_df"],
                 num_rows="dynamic",
-                use_container_width=True,
                 hide_index=True,
+                width="stretch",
                 key="pf_liabilities_editor",
                 column_config={
                     "Value": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f"),
                 },
             )
-            if st.form_submit_button("Save liabilities", use_container_width=True):
+            if st.form_submit_button("Save liabilities", width="stretch"):
                 st.session_state["pf_liabilities_df"] = _sanitize_editor_df(
                     liabilities_edit,
                     expected_cols=["Liability", "Value", "Notes"],
@@ -648,8 +612,8 @@ def render_personal_finance_dashboard():
         debt_edit = st.data_editor(
             st.session_state["pf_debt_df"],
             num_rows="dynamic",
-            use_container_width=True,
             hide_index=True,
+            width="stretch",
             key="pf_debt_editor",
             column_config={
                 "Balance": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f"),
@@ -657,7 +621,7 @@ def render_personal_finance_dashboard():
                 "Monthly Payment": st.column_config.NumberColumn(min_value=0.0, step=10.0, format="%.2f"),
             },
         )
-        if st.form_submit_button("Save debt details", use_container_width=True):
+        if st.form_submit_button("Save debt details", width="stretch"):
             st.session_state["pf_debt_df"] = _sanitize_editor_df(
                 debt_edit,
                 expected_cols=["Debt", "Balance", "APR %", "Monthly Payment", "Notes"],
@@ -759,7 +723,7 @@ def render_personal_finance_dashboard():
 
     with st.expander("Reset all data", expanded=False):
         st.warning("This clears the tool’s saved tables in this session.")
-        if st.button("Reset now", type="primary", key="pf_reset_btn"):
+        if st.button("Reset now", type="primary", key="pf_reset_btn", width="stretch"):
             for k in list(st.session_state.keys()):
                 if k.startswith("pf_"):
                     del st.session_state[k]
