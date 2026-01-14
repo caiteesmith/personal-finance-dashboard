@@ -128,12 +128,13 @@ def build_amortization_schedule(
     payoff_dt: Optional[date] = None
 
     for i in range(max_months):
-        if bal <= 0:
+        if bal <= EPS:
             break
 
         dt = _add_months(start_date, i)
+
         # Round beginning balance to cents (typical statement style)
-        beg = round(beg, 2)
+        beg = round(bal, 2)
 
         # Interest is rounded to cents each month in most schedules
         interest = round(beg * r, 2) if r > 0 else 0.0
