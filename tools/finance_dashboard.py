@@ -117,6 +117,7 @@ DEFAULT_VARIABLE = [
     {"Expense": "Gas/Transit", "Monthly Amount": 0.0, "Notes": ""},
     {"Expense": "Dining out", "Monthly Amount": 0.0, "Notes": ""},
     {"Expense": "Subscriptions", "Monthly Amount": 0.0, "Notes": ""},
+    {"Expense": "Gym/Fitness", "Monthly Amount": 0.0, "Notes": ""},
     {"Expense": "TP Fund", "Monthly Amount": 0.0, "Notes": ""},
     {"Expense": "Pet Expenses", "Monthly Amount": 0.0, "Notes": ""},
     {"Expense": "Other", "Monthly Amount": 0.0, "Notes": ""},
@@ -212,15 +213,15 @@ def render_personal_finance_dashboard():
         with c3:
             income_is = st.selectbox(
                 "Income amounts are…",
-                ["Net (after tax)", "Gross (before tax)"],
+                ["Net (after tax)", "Gross (before tax and deductions)"],
                 key="pf_income_is",
             )
 
         # ---- Gross Breakdown ----
-        if income_is == "Gross (before tax)":
-            st.subheader("Gross Income Breakdown (Optional)")
+        if income_is == "Gross (before tax and deductions)":
+            st.subheader("Gross Income Breakdown")
             st.caption(
-                "Use this section only if your income is entered as gross. "
+                "Use this section only if you want to enter your income as gross, e.g. a paycheck breakdown. "
                 "You can estimate taxes or enter exact monthly deductions for more accurate cash flow."
             )
             st.radio(
@@ -272,6 +273,31 @@ def render_personal_finance_dashboard():
 
         with tab_income:
             st.write("Add your income sources (monthly amounts).")
+            with tab_exp:
+                st.write("Split your expenses into fixed & variable so you can see what's flexible.")
+
+                with st.expander("Quick reality check (helps your numbers be accurate)", expanded=False):
+                    st.caption(
+                        "This dashboard is only as good as the inputs. Before you guess, take 5-10 minutes to be brutally honest "
+                        "and scan the last 1-2 months of statements."
+                    )
+
+                    st.markdown(
+                        """
+                            **Where to look**
+                            - **Bank & credit card statements:** Search for common merchants (Starbucks, Dunkin, Wawa, etc.)
+                            - **Amazon:** Check **Subscribe & Save** and recurring orders
+                            - **Apple/Google subscriptions:** iCloud / Google Drive storage, app subscriptions
+                            - **Spotify/Netflix/Hulu/YouTube Premium**
+                            - **Gym memberships, class packs, and any “trial turned paid”**
+                            - **Vitamins/supplements**, skincare, contact supplies
+                            - **Coffee runs, snacks, “little treats”** (they add up fast)
+
+                            **Tip:** If something hits monthly (or “randomly but often”), it belongs here.
+                        """
+                    )
+                    st.info("Goal: get to a realistic monthly average, not a perfect number.")
+                    st.checkbox("✅ I checked statements & subscriptions before filling this out", key="pf_expenses_reality_check")
             with st.form("pf_income_form", border=False):
                 income_edit = st.data_editor(
                     st.session_state["pf_income_df"],
@@ -491,6 +517,11 @@ def render_personal_finance_dashboard():
 
     with right:
         st.markdown("### Summary")
+        if not st.session_state.get("pf_expenses_reality_check", False):
+            st.info(
+                "Quick reminder: reviewing bank statements and subscriptions "
+                "can help make your expense numbers more accurate."
+            )
 
         # -------------------------
         # SNAPSHOT CHART
