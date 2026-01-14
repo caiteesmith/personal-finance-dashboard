@@ -9,6 +9,7 @@ from typing import Dict, List
 import pandas as pd
 import re
 import streamlit as st
+import json
 
 from tools.pf_visuals import cashflow_breakdown_chart, render_visual_overview, debt_burden_indicator, debt_payoff_order_chart
 
@@ -1000,6 +1001,66 @@ def render_personal_finance_dashboard():
             sort=False,
         )
         _download_csv_button("Download net worth tables (CSV)", nw_combined, "personal_finance_net_worth_tables.csv")
+
+
+    # ---- Load snapshot from previous run ----
+    def _safe_float(x, default=0.0) -> float:
+        try:
+            return float(x)
+        except Exception:
+            return float(default)
+
+    def _load_snapshot_into_state(snapshot: dict):
+        # ---- Settings (optional) ----
+        st.session_state["pf_month_label"] = snapshot.get("month_label", st.session_state.get("pf_month_label"))
+
+        # ---- Gross breakdown (saved values used by calcs) ----
+        gb = snapshot.get("gross_breakdown_optional", {}) or {}
+        st.session_state["pf_manual_taxes"] = _safe_float(gb.get("taxes", 0))
+        st.session_state["pf_manual_retirement"] = _safe_float(gb.get("retirement_employee", 0))
+        st.session_state["pf_manual_match"] = _safe_float(gb.get("company_match", 0))
+        st.session_state["pf_manual_benefits"] = _safe_float(gb.get("benefits", 0))
+        st.session_state["pf_manual_other_ssi"] = _safe_float(gb.get("other_ssi", 0))
+
+        # Also populate draft fields so the UI inputs show the loaded values
+        st.session_state["pf_draft_taxes"] = st.session_state["pf_manual_taxes"]
+        st.session_state["pf_draft_retirement"] = st.session_state["pf_manual_retirement"]
+        st.session_state["pf_draft_match"] = st.session_state["pf_manual_match"]
+        st.session_state["pf_draft_benefits"] = st.session_state["pf_manual_benefits"]
+        st.session_state["pf_draft_other_ssi"] = st.session_state["pf_manual_other_ssi"]
+
+        # ---- Tables ----
+        tables = snapshot.get("tables", {}) or {}
+
+        def _set_table(key: str, rows: list[dict], expected_cols: list[str], numeric_cols: list[str]):
+            df = pd.DataFrame(rows or [])
+            st.session_state[key] = _sanitize_editor_df(df, expected_cols=expected_cols, numeric_cols=numeric_cols)
+
+        _set_table("pf_income_df", tables.get("income"), ["Source", "Monthly Amount", "Notes"], ["Monthly Amount"])
+        _set_table("pf_fixed_df", tables.get("fixed_expenses"), ["Expense", "Monthly Amount", "Notes"], ["Monthly Amount"])
+        _set_table("pf_variable_df", tables.get("variable_expenses"), ["Expense", "Monthly Amount", "Notes"], ["Monthly Amount"])
+        _set_table("pf_saving_df", tables.get("saving"), ["Bucket", "Monthly Amount", "Notes"], ["Monthly Amount"])
+        _set_table("pf_investing_df", tables.get("investing"), ["Bucket", "Monthly Amount", "Notes"], ["Monthly Amount"])
+        _set_table("pf_assets_df", tables.get("assets"), ["Asset", "Value", "Notes"], ["Value"])
+        _set_table("pf_liabilities_df", tables.get("liabilities"), ["Liability", "Value", "Notes"], ["Value"])
+        _set_table("pf_debt_df", tables.get("debt_details"), ["Debt", "Balance", "APR %", "Monthly Payment", "Notes"], ["Balance", "APR %", "Monthly Payment"])
+
+
+    with st.expander("Import a saved snapshot", expanded=False):
+        st.caption("Upload a previously downloaded snapshot JSON to restore your dashboard inputs.")
+        uploaded = st.file_uploader("Snapshot JSON", type=["json"], key="pf_snapshot_uploader")
+
+        if uploaded is not None:
+            try:
+                snapshot = json.load(uploaded)
+                if not isinstance(snapshot, dict) or "tables" not in snapshot:
+                    st.error("That file doesn’t look like a valid dashboard snapshot.")
+                else:
+                    _load_snapshot_into_state(snapshot)
+                    st.success("Snapshot loaded! Restoring your dashboard…")
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Couldn’t read that file: {e}")
 
     with st.expander("Reset all data", expanded=False):
         st.warning("This clears the tool’s saved tables in this session.")
