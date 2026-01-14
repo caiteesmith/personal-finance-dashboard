@@ -38,6 +38,7 @@ def cashflow_breakdown_chart(
     max_x = max(net_income, total_outflow, 1.0)
 
     fig = go.Figure()
+
     for label, val in zip(labels, values):
         fig.add_trace(
             go.Bar(
@@ -51,22 +52,18 @@ def cashflow_breakdown_chart(
 
     fig.update_layout(
         barmode="stack",
-        height=102,
-        # extra bottom space so labels breathe
-        margin=dict(l=0, r=0, t=8, b=40),
-
+        height=96,
+        margin=dict(l=0, r=0, t=6, b=22),
         showlegend=True,
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.12,
+            y=1.10,
             xanchor="left",
             x=0,
             font=dict(size=13),
-            itemclick=False,
-            itemdoubleclick=False,
+            itemwidth=80,
         ),
-
         xaxis=dict(
             range=[0, max_x],
             tickprefix="$",
@@ -74,17 +71,11 @@ def cashflow_breakdown_chart(
             showgrid=False,
             zeroline=False,
             fixedrange=True,
-
             automargin=False,
+            ticklabelposition="inside",
+            tickpadding=12,
             domain=[0, 1],
-
-            ticklabelposition="outside",
-            ticks="outside",
-            ticklen=6,
-
-            ticklabelstandoff=14,
         ),
-
         yaxis=dict(
             range=[-0.5, 0.5],
             showticklabels=False,
