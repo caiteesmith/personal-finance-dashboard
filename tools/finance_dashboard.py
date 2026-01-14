@@ -627,20 +627,20 @@ def render_personal_finance_dashboard():
             )
             st.rerun()
 
-    st.metric("Total Monthly Debt Payments", _money(total_monthly_debt_payments))
-
     st.markdown("### Debt Summary")
-    st.caption(
-        "These visuals help you answer two questions: "
-        "**(1)** how heavy your monthly debt payments feel vs your take-home income, and "
-        "**(2)** what order to focus debts in if you’re paying extra."
-    )
+    c1, c2, c3 = st.columns([0.55, 0.85, 1.2], gap="large")
 
-    c1, c2 = st.columns([0.9, 1.1], gap="large")
     with c1:
+        st.metric(
+            "Total Monthly Debt Payments",
+            _money(total_monthly_debt_payments),
+            help="The total minimum amount you must pay toward debts each month."
+        )
+
+    with c2:
         st.caption(
             "**Debt Burden** shows what % of your take-home pay goes to minimum debt payments each month. "
-            "Lower is more flexible. As a rough guide: under ~15% feels light, 15–30% is moderate, 30%+ is heavy."
+            "Lower is more flexible. Rough guide: under ~15% feels light, 15–30% is moderate, 30%+ is heavy."
         )
         fig_burden, burden_pct = debt_burden_indicator(
             net_income=net_income,
@@ -648,7 +648,7 @@ def render_personal_finance_dashboard():
         )
         st.plotly_chart(fig_burden, use_container_width=True)
 
-    with c2:
+    with c3:
         st.caption(
             "**Payoff Order** ranks your debts for where to focus extra payments. "
             "Bars show **balance**, and the label on each bar is the **APR**."
@@ -664,7 +664,8 @@ def render_personal_finance_dashboard():
         st.plotly_chart(fig_order, use_container_width=True)
 
     st.caption(
-        "Tip: keep paying minimums on everything, then put any extra toward the #1 ranked debt."
+        "Tip: Keep paying minimums on everything, then put any extra toward the #1 ranked debt. "
+        "If you have leftover income each month, put as much as possible toward your debt(s)."
     )
 
     st.divider()
