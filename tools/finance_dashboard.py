@@ -258,7 +258,7 @@ def render_personal_finance_dashboard():
             # -------------------------
             # Optional paycheck breakdown
             # -------------------------
-            with st.expander("Optional: Paycheck-level breakdown (gross → net)", expanded=False):
+            with st.expander("Optional: Paycheck-level breakdown (gross → net)", expanded=True):
                 st.caption(
                     "Use this only if the income you entered above is **gross** and you want the dashboard to calculate "
                     "**net income** using exact monthly deductions (taxes, benefits, retirement)."
