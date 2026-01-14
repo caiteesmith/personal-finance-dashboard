@@ -54,7 +54,13 @@ def cashflow_breakdown_chart(
         height=110,
         margin=dict(l=10, r=10, t=10, b=10),
         showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="left", x=0),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,  # tighter
+            xanchor="left",
+            x=0,
+        ),
         xaxis=dict(title="", tickprefix="$", separatethousands=True),
         yaxis=dict(title="", showticklabels=False),
     )
