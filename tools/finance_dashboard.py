@@ -750,7 +750,7 @@ def render_personal_finance_dashboard():
                     f"You've got **{_money(buffer)}** left unallocated. That's a tight buffer; doable, but it can feel stressful if anything pops up."
                 )
                 st.markdown(
-                    "If it feels tight, aim for a buffer closer to \$200-\$500. Treat this like “life happens” money, not failure money."
+                    "If it feels tight, aim for a buffer closer to \\$200-\\$500. Treat this like “life happens” money, not failure money."
                 )
 
             elif buffer < 750:
