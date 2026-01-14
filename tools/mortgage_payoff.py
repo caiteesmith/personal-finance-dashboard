@@ -111,6 +111,7 @@ def build_amortization_schedule(
         return MortgageResult(df, None, 0, 0.0, 0.0)
 
     r = apr / 100.0 / 12.0
+    EPS = 0.01  # 1 cent payoff tolerance
     if pay <= 0:
         raise ValueError("Monthly payment must be greater than $0.")
 
@@ -131,16 +132,35 @@ def build_amortization_schedule(
             break
 
         dt = _add_months(start_date, i)
-        beg = bal
+        # Round beginning balance to cents (typical statement style)
+        beg = round(beg, 2)
 
-        interest = beg * r if r > 0 else 0.0
-        base_payment = min(pay, beg + interest)
+        # Interest is rounded to cents each month in most schedules
+        interest = round(beg * r, 2) if r > 0 else 0.0
 
+        # Total due this month (balance + interest), rounded
+        due = round(beg + interest, 2)
+
+        # base payment (cannot exceed amount due)
+        base_payment = min(round(pay, 2), due)
+
+        # one-time extra happens in the selected month index
         extra_this_month = extra_m + (one_time if i == int(extra_one_time_month_index) else 0.0)
-        total_payment = min(base_payment + extra_this_month, beg + interest)
+        extra_this_month = round(extra_this_month, 2)
 
-        principal_paid = max(0.0, total_payment - interest)
-        end = max(0.0, beg - principal_paid)
+        # total paid this month cannot exceed amount due
+        total_payment = min(round(base_payment + extra_this_month, 2), due)
+
+        # split principal/interest (principal also rounded)
+        principal_paid = round(max(0.0, total_payment - interest), 2)
+
+        end = round(max(0.0, beg - principal_paid), 2)
+
+        # If we're within a penny, call it paid off
+        if end <= EPS:
+            principal_paid = round(beg, 2)
+            total_payment = round(interest + principal_paid, 2)
+            end = 0.0
 
         cum_interest += interest
 
@@ -160,7 +180,7 @@ def build_amortization_schedule(
 
         bal = end
 
-        if bal <= 0 and payoff_dt is None:
+        if bal <= EPS and payoff_dt is None:
             payoff_dt = dt
 
     df = pd.DataFrame(rows)
@@ -228,7 +248,7 @@ def render_mortgage_payoff_calculator():
             start_date = st.date_input("Start date (first payment month)", key="mtg_start_date")
             principal = st.number_input("Loan balance/principal", min_value=0.0, step=1000.0, key="mtg_principal")
             home_value = st.number_input(
-                "Home value / purchase price (for PMI drop-off)",
+                "Home value/Purchase price (for PMI drop-off)",
                 min_value=0.0,
                 step=5000.0,
                 key="mtg_home_value",
@@ -245,7 +265,7 @@ def render_mortgage_payoff_calculator():
 
             if st.session_state["mtg_mode"] == "Calculate my payment (term-based)":
                 term_years = st.number_input("Term (years)", min_value=1, max_value=50, step=1, key="mtg_term_years")
-                calc_payment = _monthly_payment(principal, apr, int(term_years))
+                calc_payment = round(_monthly_payment(principal, apr, int(term_years)), 2)
                 st.info(f"Estimated monthly payment (principal + interest): **{_money(calc_payment)}**")
                 monthly_payment = calc_payment
             else:
@@ -269,13 +289,13 @@ def render_mortgage_payoff_calculator():
 
             with t1:
                 taxes = st.number_input(
-                    "Property taxes (monthly)",
+                    "Property taxes",
                     min_value=0.0,
                     step=25.0,
                     key="mtg_taxes",
                 )
                 insurance = st.number_input(
-                    "Home insurance (monthly)",
+                    "Home insurance",
                     min_value=0.0,
                     step=25.0,
                     key="mtg_insurance",
@@ -283,14 +303,14 @@ def render_mortgage_payoff_calculator():
 
             with t2:
                 pmi = st.number_input(
-                    "PMI (monthly)",
+                    "PMI",
                     min_value=0.0,
                     step=25.0,
                     key="mtg_pmi",
                     help="We can estimate when PMI drops off if you enter a home value above.",
                 )
                 hoa = st.number_input(
-                    "HOA dues (monthly)",
+                    "HOA dues",
                     min_value=0.0,
                     step=25.0,
                     key="mtg_hoa",
