@@ -689,46 +689,6 @@ def render_personal_finance_dashboard():
                         """
                     )
 
-        with st.container(border=True):
-            _section("Spending & Saving Split")
-
-            c1, c2, c3, c4 = st.columns(4, gap="medium")
-
-            c1.metric(
-                "Needs",
-                _pct(needs_pct),
-                help="Required spending: housing, utilities, groceries, insurance, and minimum debt payments."
-            )
-
-            c2.metric(
-                "Wants",
-                _pct(wants_pct),
-                help="Discretionary spending: dining out, subscriptions, shopping, and non-essentials."
-            )
-
-            c3.metric(
-                "Save & Invest",
-                _pct(save_invest_pct),
-                help="Money intentionally set aside for savings, investing, and retirement."
-            )
-
-            c4.metric(
-                "Unallocated",
-                _pct(unallocated_pct),
-                help="Income not yet assigned. Often used as buffer, flexibility, or future decisions."
-            )
-
-            st.caption(
-                "Rule of thumb: ~50% needs, ~30% wants, ~20% save & invest. "
-                "Unallocated is normal and often intentional."
-            )
-
-        with st.container(border=True):
-            _section("Net Worth & Liabilities")
-            c1, c2 = st.columns(2, gap="medium")
-            c1.metric("Net Worth", _money(net_worth))
-            c2.metric("Total Liabilities", _money(total_liabilities))
-
         # --- SUMMARY RUNDOWN ---
         with st.container(border=True):
             _section("How You're Doing")
@@ -773,6 +733,46 @@ def render_personal_finance_dashboard():
                     "  - set aside guilt-free fun money\n"
                     "  - or keep it as a buffer while you watch patterns for a few months"
                 )
+
+        with st.container(border=True):
+            _section("Spending & Saving Split")
+
+            c1, c2, c3, c4 = st.columns(4, gap="medium")
+
+            c1.metric(
+                "Needs",
+                _pct(needs_pct),
+                help="Required spending: housing, utilities, groceries, insurance, and minimum debt payments."
+            )
+
+            c2.metric(
+                "Wants",
+                _pct(wants_pct),
+                help="Discretionary spending: dining out, subscriptions, shopping, and non-essentials."
+            )
+
+            c3.metric(
+                "Save & Invest",
+                _pct(save_invest_pct),
+                help="Money intentionally set aside for savings, investing, and retirement."
+            )
+
+            c4.metric(
+                "Unallocated",
+                _pct(unallocated_pct),
+                help="Income not yet assigned. Often used as buffer, flexibility, or future decisions."
+            )
+
+            st.caption(
+                "Rule of thumb: ~50% needs, ~30% wants, ~20% save & invest. "
+                "Unallocated is normal and often intentional."
+            )
+
+        with st.container(border=True):
+            _section("Net Worth & Liabilities")
+            c1, c2 = st.columns(2, gap="medium")
+            c1.metric("Net Worth", _money(net_worth))
+            c2.metric("Total Liabilities", _money(total_liabilities))
 
     st.divider()
     st.subheader("🆘 Your Emergency Minimum")
