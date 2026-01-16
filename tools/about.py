@@ -12,7 +12,7 @@ def render_about():
 
             st.markdown(
                 """
-                In early 2025, I built a simple spreadsheet because I was tired of feeling vague about my money.
+                In early 2025, I built a simple Excel spreadsheet because I was tired of feeling vague about my money.
                 I wanted one clear place to see:
 
                 - What I earned  

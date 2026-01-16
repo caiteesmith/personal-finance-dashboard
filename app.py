@@ -16,7 +16,7 @@ def main():
     st.sidebar.title("Financial Breakdown")
     page = st.sidebar.radio(
         "Go to",
-        ["About", "Personal Finance Dashboard", "Mortgage Payoff Calculator"],
+        ["About Financial Breakdown", "Personal Finance Dashboard", "Mortgage Payoff Calculator"],
         index=0,
         key="nav_page"
     )
