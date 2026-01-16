@@ -10,29 +10,29 @@ def render_saveinvest_tab():
                 "(including employer match). This is a reference point, not a rule."
             )
 
-        s_col, i_col = st.columns(2, gap="large")
+        # s_col, i_col = st.columns(2, gap="large")
 
-        with s_col:
-            st.markdown("**Saving**")
-            saving_edit = st.data_editor(
-                st.session_state["pf_saving_df"],
-                num_rows="dynamic",
-                hide_index=True,
-                width="stretch",
-                key="pf_saving_editor",
-                column_config={"Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f")},
-            )
+        # with s_col:
+        st.markdown("**Saving**")
+        saving_edit = st.data_editor(
+            st.session_state["pf_saving_df"],
+            num_rows="dynamic",
+            hide_index=True,
+            width="stretch",
+            key="pf_saving_editor",
+            column_config={"Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f")},
+        )
 
-        with i_col:
-            st.markdown("**Investing**")
-            investing_edit = st.data_editor(
-                st.session_state["pf_investing_df"],
-                num_rows="dynamic",
-                hide_index=True,
-                width="stretch",
-                key="pf_investing_editor",
-                column_config={"Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f")},
-            )
+        # with i_col:
+        st.markdown("**Investing**")
+        investing_edit = st.data_editor(
+            st.session_state["pf_investing_df"],
+            num_rows="dynamic",
+            hide_index=True,
+            width="stretch",
+            key="pf_investing_editor",
+            column_config={"Monthly Amount": st.column_config.NumberColumn(min_value=0.0, step=25.0, format="%.2f")},
+        )
 
         submitted = st.form_submit_button("Save saving & investing", type="primary", width="stretch")
 

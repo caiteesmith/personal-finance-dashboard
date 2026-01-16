@@ -1,0 +1,84 @@
+# =========================
+# Python / Streamlit
+# =========================
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Streamlit runtime + local config
+.streamlit/secrets.toml
+.streamlit/config.toml
+.streamlit/cache/
+.streamlit/state/
+
+# Streamlit uploads / downloads (user data)
+uploads/
+downloads/
+
+# =========================
+# Personal Finance Data
+# =========================
+
+# Local data exports & snapshots
+*.csv
+*.xlsx
+*.xls
+*.json
+*.parquet
+*.db
+*.sqlite
+*.sqlite3
+
+# Backups / exports
+backups/
+exports/
+snapshots/
+
+# =========================
+# Logs & Temp
+# =========================
+*.log
+*.tmp
+*.swp
+
+# =========================
+# OS / Editor
+# =========================
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+.code-workspace
+
+# JetBrains
+.idea/
+*.iml
+
+# =========================
+# Build / Distribution
+# =========================
+build/
+dist/
+*.egg-info/
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+*.key
+*.pem
+
+# =========================
+# Misc
+# =========================
+Thumbs.db

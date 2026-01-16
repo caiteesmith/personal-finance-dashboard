@@ -94,13 +94,13 @@ DEFAULT_INVESTING = [
     {"Bucket": "Other long-term investing", "Monthly Amount": 0.0, "Notes": ""},
 ]
 
+# NOTE: use "Monthly Payment" here to match the editor / calculations
 DEFAULT_DEBT = [
     {"Debt": "Car loan", "Balance": 0.0, "APR %": 0.0, "Monthly Payment": 0.0, "Notes": ""},
     {"Debt": "Credit card", "Balance": 0.0, "APR %": 0.0, "Monthly Payment": 0.0, "Notes": ""},
     {"Debt": "Student loan", "Balance": 0.0, "APR %": 0.0, "Monthly Payment": 0.0, "Notes": ""},
     {"Debt": "Personal loan", "Balance": 0.0, "APR %": 0.0, "Monthly Payment": 0.0, "Notes": ""},
     {"Debt": "Medical debt", "Balance": 0.0, "APR %": 0.0, "Monthly Payment": 0.0, "Notes": ""},
-    {"Debt": "HELOC", "Balance": 0.0, "APR %": 0.0, "Monthly Payment": 0.0, "Notes": ""},
 ]
 
 DEFAULT_ASSETS = [
@@ -115,7 +115,9 @@ DEFAULT_ASSETS = [
 
 DEFAULT_LIABILITIES = [
     {"Liability": "Mortgage", "Value": 0.0, "Notes": ""},
+    {"Liability": "Home Equity Loan/HELOC", "Value": 0.0, "Notes": ""},
     {"Liability": "Car loan", "Value": 0.0, "Notes": ""},
+    {"Liability": "Tax Liability", "Value": 0.0, "Notes": ""},
 ]
 
 
@@ -324,80 +326,184 @@ def render_personal_finance_dashboard():
             )
             st.rerun()
 
-    # Recompute for updated metrics display after edits without forcing rerun here
-    # (The forms rerun on submit anyway)
-    n1, n2, n3 = st.columns(3, gap="large")
-    n1.metric("Total Assets", money(metrics["total_assets"]))
-    n2.metric("Total Liabilities", money(metrics["total_liabilities"]))
-    n3.metric("Net Worth", money(metrics["net_worth"]))
+    with st.container(border=True):
+        n1, n2, n3 = st.columns(3, gap="large")
+        n1.metric("Total Assets", money(metrics["total_assets"]))
+        n2.metric("Total Liabilities", money(metrics["total_liabilities"]))
+        n3.metric("Net Worth", money(metrics["net_worth"]))
 
     st.divider()
 
     # -------------------------
     # DEBT DETAILS
     # -------------------------
-    st.subheader("Debt Details")
+    st.subheader("Consumer Debt Details")
     st.caption("This doesn't affect net worth beyond the liability values, it's here for clarity and payoff planning.")
 
-    with st.form("pf_debt_form", border=False):
-        debt_edit = st.data_editor(
-            st.session_state["pf_debt_df"],
-            num_rows="dynamic",
-            hide_index=True,
-            width="stretch",
-            key="pf_debt_editor",
-            column_config={
-                "Balance": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f"),
-                "APR %": st.column_config.NumberColumn(min_value=0.0, max_value=60.0, step=0.1, format="%.2f"),
-                "Monthly Payment": st.column_config.NumberColumn(min_value=0.0, step=10.0, format="%.2f"),
-            },
-        )
-        debt_submitted = st.form_submit_button("Save debt details", type="primary", width="stretch")
+    debt_df = st.session_state["pf_debt_df"]
 
-    if debt_submitted:
-        st.session_state["pf_debt_df"] = sanitize_editor_df(
-            debt_edit,
-            expected_cols=["Debt", "Balance", "APR %", "Monthly Payment", "Notes"],
-            numeric_cols=["Balance", "APR %", "Monthly Payment"],
-        )
-        st.rerun()
+    total_monthly_debt_payments = float(metrics.get("total_monthly_debt_payments", 0.0) or 0.0)
+    total_debt_balance = float(metrics.get("total_debt_balance", 0.0) or 0.0)
+    net_income = float(metrics.get("net_income", 0.0) or 0.0)
 
-    st.markdown("### Debt Summary")
-    c1, c2, c3 = st.columns([0.55, 0.85, 1.2], gap="large")
+    debt_burden_pct = metrics.get("debt_burden_pct")
+    payoff_rows = metrics.get("debt_payoff_rows") or []
+    overall_months = metrics.get("debt_overall_months")
+    overall_interest = metrics.get("debt_overall_interest")
+    overall_payoff_date = metrics.get("debt_overall_payoff_date")
+    has_non_amortizing = bool(metrics.get("debt_has_non_amortizing", False))
+
+    # ---- Debt Details 
+    c1, c2, c3 = st.columns([1.2, 0.75, 0.75], gap="medium")
 
     with c1:
-        st.metric(
-            "Total Monthly Debt Payments",
-            money(metrics["total_monthly_debt_payments"]),
-            help="The total minimum amount you must pay toward debts each month.",
-        )
+        with st.form("pf_debt_form", border=False):
+            debt_edit = st.data_editor(
+                debt_df,
+                num_rows="dynamic",
+                hide_index=True,
+                width="stretch",
+                key="pf_debt_editor",
+                column_config={
+                    "Balance": st.column_config.NumberColumn(min_value=0.0, step=100.0, format="%.2f"),
+                    "APR %": st.column_config.NumberColumn(min_value=0.0, max_value=60.0, step=0.01, format="%.2f"),
+                    "Monthly Payment": st.column_config.NumberColumn(min_value=0.0, step=10.0, format="%.2f"),
+                },
+            )
+            debt_submitted = st.form_submit_button("Save debt details", type="primary", width="stretch")
+
+        if debt_submitted:
+            st.session_state["pf_debt_df"] = sanitize_editor_df(
+                debt_edit,
+                expected_cols=["Debt", "Balance", "APR %", "Monthly Payment", "Notes"],
+                numeric_cols=["Balance", "APR %", "Monthly Payment"],
+            )
+            st.rerun()
 
     with c2:
-        st.caption(
-            "**Debt Burden** shows what % of your take-home pay goes to minimum debt payments each month. "
-            "Under ~15% feels light, 15–30% is moderate, 30%+ is heavy."
-        )
-        fig_burden, _ = debt_burden_indicator(net_income=metrics["net_income"], debt_payments=metrics["total_monthly_debt_payments"])
-        st.plotly_chart(fig_burden, width="stretch")
+        # 1) Payoff Timeline (top card)
+        with st.container(border=True):
+            st.markdown("#### Payoff Timeline")
+
+            if total_debt_balance <= 0 or total_monthly_debt_payments <= 0:
+                st.caption("Add balances and monthly payments on the left to see estimated payoff dates.")
+            else:
+                if has_non_amortizing:
+                    st.warning(
+                        "**⚠️ At your current payment level, at least one debt will never be paid off.** "
+                        "That happens when your payment is less than the interest charged each month."
+                    )
+                elif overall_months is not None and overall_payoff_date is not None:
+                    years = overall_months / 12.0
+                    st.markdown(
+                        f"**At your current payment level, you're on track to be debt-free around "
+                        f"{overall_payoff_date}** (_≈{years:.1f} years_)."
+                    )
+                    if overall_interest is not None:
+                        st.caption(
+                            f"Estimated interest remaining: **{money(overall_interest)}** "
+                            "(Assumes payments & APRs stay steady; simple approximation)."
+                        )
+
+                if payoff_rows:
+                    st.markdown("**Per-debt estimates**")
+
+                    for row in payoff_rows[:6]:
+                        status = row.get("status")
+                        if status == "paid_off":
+                            st.markdown(
+                                f"- **{row['Debt']}**: **{row['payoff_date']}** ({row['months']} mo)"
+                            )
+                        elif status == "non_amortizing":
+                            st.markdown(
+                                f"- **{row['Debt']}** → **No payoff at current payment** "
+                                f"(interest ≈ {money(row['monthly_interest']).replace('$', '\\$')}/mo, "
+                                f"payment {money(row['payment']).replace('$', '\\$')}; "
+                                f"needs > {money(row['min_payment_to_amortize']).replace('$', '\\$')})"
+                            )
+                        elif status == "no_payment":
+                            st.markdown(
+                                f"- **{row['Debt']}** → **No payment entered** "
+                                f"(interest ≈ {money(row['monthly_interest'])}/mo)"
+                            )
+                        else:  # "too_long" or anything else
+                            st.markdown(
+                                f"- **{row['Debt']}** → **Payoff estimate exceeds 600 months** "
+                                "(try increasing payment)"
+                            )
+
+                    if len(payoff_rows) > 6:
+                        st.caption(f"+ {len(payoff_rows) - 6} more…")
 
     with c3:
-        st.caption(
-            "**Payoff Order** ranks debts for where to focus extra payments. "
-            "Bars show **balance**, and the label on each bar is the **APR**."
-        )
-        strategy = st.radio(
-            "Payoff strategy",
-            ["Avalanche (APR)", "Snowball (Balance)"],
-            horizontal=True,
-            key="pf_debt_strategy",
-            help="Avalanche saves more interest (highest APR first). Snowball builds momentum (smallest balance first).",
-        )
-        fig_order = debt_payoff_order_chart(st.session_state["pf_debt_df"], strategy=strategy)
-        st.plotly_chart(fig_order, width="stretch")
+        # 2) Debt Check-In (bottom card)
+        with st.container(border=True):
+            st.markdown("#### Debt Check-In")
 
-    st.caption(
-        "Tip: Keep paying minimums on everything, then put any extra toward the #1 ranked debt."
-    )
+            if total_debt_balance <= 0:
+                st.markdown("🎉 **You're free of consumer debt.**")
+                st.markdown(
+                    "- Build/top off your emergency fund\n"
+                    "- Increase retirement contributions\n"
+                    "- Invest toward long-term goals\n"
+                    "- Create sinking funds for upcoming expenses"
+                )
+            else:
+                if debt_burden_pct is None:
+                    st.caption("Add your income to see what % of take-home pay goes to minimum debt payments.")
+                else:
+                    burden_text = f"**{debt_burden_pct:.1f}%** of your take-home pay is going to minimum debt payments."
+
+                    if debt_burden_pct < 10:
+                        st.success(f"Light debt burden. {burden_text}")
+                        st.caption("Plenty of flexibility. Extra payments are optional but powerful.")
+                    elif debt_burden_pct < 20:
+                        st.info(f"Manageable debt burden. {burden_text}")
+                        st.caption("Solid, but extra payments toward high-APR debt buy flexibility fast.")
+                    elif debt_burden_pct < 30:
+                        st.warning(f"Heavy debt burden. {burden_text}")
+                        st.caption("Consider prioritizing highest APR & trimming non-essentials temporarily.")
+                    else:
+                        st.error(f"Very heavy debt burden. {burden_text}")
+                        st.caption("Focus on stabilizing cash flow & exploring payoff/consolidation options carefully.")
+
+        # ---- BELOW: Debt charts (visual summary)
+    has_any_debt = (total_debt_balance > 0) or (total_monthly_debt_payments > 0)
+
+    with st.expander("Debt Summary", expanded=has_any_debt):
+        c1, c2, c3 = st.columns([0.55, 0.85, 1.2], gap="large")
+
+        with c1:
+            with st.container(border=True):
+                st.metric("Total Monthly Debt Payments", money(total_monthly_debt_payments))
+
+        with c2:
+            st.caption(
+                "**Debt Burden** shows what % of your take-home pay goes to minimum debt payments each month. "
+                "Under ~15% feels light, 15–30% is moderate, 30%+ is heavy."
+            )
+            fig_burden, _ = debt_burden_indicator(
+                net_income=net_income,
+                debt_payments=total_monthly_debt_payments,
+            )
+            st.plotly_chart(fig_burden, use_container_width=True, key="pf_debt_burden_chart")
+
+        with c3:
+            st.caption(
+                "**Payoff Order** ranks your debts for where to focus extra payments. "
+                "Bars show **balance**, and the label on each bar is the **APR**."
+            )
+            strategy = st.radio(
+                "Payoff strategy",
+                ["Avalanche (APR)", "Snowball (Balance)"],
+                horizontal=True,
+                key="pf_debt_strategy",
+            )
+            fig_order = debt_payoff_order_chart(
+                st.session_state["pf_debt_df"],
+                strategy=strategy,
+            )
+            st.plotly_chart(fig_order, use_container_width=True, key="pf_debt_order_chart")
 
     st.divider()
 
@@ -548,13 +654,14 @@ def render_personal_finance_dashboard():
     # PRIVACY
     # -------------------------
     st.subheader("Privacy & Data")
-    st.markdown(
-        """
-**Your data stays local to this session.**
+    with st.expander("Privacy & Data", expanded=False):
+        st.markdown(
+            """
+    **Your data stays local to this session.**
 
-- This dashboard stores your inputs in **temporary session state** while the app is open.
-- If you refresh the page or close the tab, your data can be cleared unless you **export a snapshot**.
-- Snapshot files are downloaded to your device. **Only you** control where they're stored or shared.
-- This app is not connected to your bank and does not pull transactions automatically.
-        """
-    )
+    - This dashboard stores your inputs in temporary session state while the app is open.
+    - If you refresh the page or close the tab, your data can be cleared unless you export a snapshot.
+    - Snapshot files are downloaded to your device. Only you control where they're stored or shared.
+    - This app is not connected to your bank and does not pull transactions automatically.
+            """
+        )
