@@ -71,7 +71,8 @@ def render_summary_panel(metrics: dict) -> None:
         with st.container(border=True):
             st.markdown("### Welcome 👋")
             st.caption(
-                "This dashboard gives you a clear monthly snapshot of your income, spending, saving, debt, and net worth."
+                "A spreadsheet-style dashboard to track your personal monthly cash flow and net worth. "
+                "Enter your numbers, click Save, and the tool does the math."
             )
             st.markdown(
                 """

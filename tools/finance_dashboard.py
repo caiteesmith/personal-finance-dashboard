@@ -147,6 +147,7 @@ def _download_csv_button(label: str, df: pd.DataFrame, filename: str):
 
 def _dashboard_header(net_income, total_outflow, remaining, emergency_minimum_monthly, net_worth, debt_payments):
     with st.container(border=True):
+        st.markdown("**Monthly Outlook**")
         a, b, c, d, e, f = st.columns(6, gap="medium")
         a.metric("Net", money(net_income))
         b.metric("Expenses", money(total_outflow))
@@ -168,10 +169,6 @@ def render_personal_finance_dashboard():
     st.session_state.setdefault("pf_last_import_sig", "")
 
     st.title("💸 Personal Finance Dashboard")
-    st.caption(
-        "A spreadsheet-style dashboard to track your personal monthly cash flow and net worth. "
-        "Enter your numbers, click Save, and the tool does the math."
-    )
 
     # ---- Widget defaults ----
     st.session_state.setdefault("pf_month_label", datetime.now().strftime("%B %Y"))
