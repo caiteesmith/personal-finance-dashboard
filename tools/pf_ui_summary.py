@@ -85,10 +85,10 @@ def render_summary_panel(metrics: dict) -> None:
                 6. **Debt & Net Worth:** Optional, but it makes the picture way clearer.
 
                 **Tiny tips that keep this accurate**
-                - Use real numbers, not guesses. Pull from the last 1–2 months so it matches real life.
+                - Use real numbers, not guesses. Pull from the last 1-2 months statements so it matches real life.
                 - Convert to monthly amounts (ex: annual bill ÷ 12).
                 - Click **Save** in each tab to update your snapshot.
-                - Want to keep your data? Use **Export → Download snapshot** (then you can import it later).
+                - Want to keep your data? Use **Export snapshot** (then you can import it later).
                 """
             )
 
