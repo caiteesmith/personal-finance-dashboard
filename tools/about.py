@@ -1,4 +1,4 @@
-# pages/about.py
+# tools/about.py
 import streamlit as st
 
 
@@ -70,8 +70,7 @@ def render_about():
                 """
             )
 
-        st.caption("Built by someone who needed this clarity in order to make the right moves.")
-
+        st.caption("💜 Built by someone who has lived through these same money stresses and wants to make the path feel a little easier for anyone navigating them now. 💜")
 
 def main():
     render_about()
