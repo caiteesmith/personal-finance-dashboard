@@ -61,9 +61,8 @@ def _estimate_debt_payoff(
             "reason": None,
         }
 
-    # Payment doesn't cover interest -> balance grows -> no payoff
+    # Payment doesn't cover interest > balance grows > no payoff
     if payment <= monthly_interest:
-        # a tiny epsilon above interest is the minimum to *start* amortizing
         min_payment = monthly_interest + 1.0
         return {
             "status": "non_amortizing",
@@ -83,7 +82,6 @@ def _estimate_debt_payoff(
         interest = b * monthly_rate
         principal = payment - interest
 
-        # Should not happen now, but keep it safe
         if principal <= 0:
             return {
                 "status": "non_amortizing",
@@ -129,7 +127,7 @@ def compute_metrics() -> dict:
     assets_df = st.session_state["pf_assets_df"]
     liabilities_df = st.session_state["pf_liabilities_df"]
 
-    # -------- Income / deductions --------
+    # -------- Income/Deductions --------
     total_income = sum_df(income_df, "Monthly Amount")
 
     manual_taxes = float(st.session_state.get("pf_manual_taxes", 0.0) or 0.0)
@@ -142,9 +140,7 @@ def compute_metrics() -> dict:
     use_breakdown = bool(st.session_state.get("pf_use_paycheck_breakdown", False))
     net_income = total_income - manual_deductions_total if use_breakdown else total_income
 
-    est_tax = 0.0  # placeholder if you later add tax-rate mode
-
-    # -------- Expenses / saving / investing --------
+    # -------- Expenses/Saving/Investing --------
     fixed_total = sum_df(fixed_df, "Monthly Amount")
     essential_total = sum_df(essential_df, "Monthly Amount")
     nonessential_total = sum_df(nonessential_df, "Monthly Amount")
@@ -297,7 +293,6 @@ def compute_metrics() -> dict:
         "total_income": total_income,
         "net_income": net_income,
         "manual_deductions_total": manual_deductions_total,
-        "est_tax": est_tax,
 
         "fixed_total": fixed_total,
         "essential_total": essential_total,
