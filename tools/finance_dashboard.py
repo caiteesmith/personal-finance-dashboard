@@ -148,7 +148,7 @@ def _dashboard_header(net_income, total_outflow, remaining, emergency_minimum_mo
     with st.container(border=True):
         st.markdown("**Monthly Outlook**")
         a, b, c, d, e, f = st.columns(6, gap="medium")
-        a.metric("Net", money(net_income))
+        a.metric("Net Income", money(net_income))
         b.metric("Expenses", money(total_outflow))
         c.metric("Leftover", money(remaining))
         d.metric("Emergency Min", money(emergency_minimum_monthly))
