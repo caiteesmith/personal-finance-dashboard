@@ -337,13 +337,18 @@ def render_mortgage_payoff_calculator(user=None):
 
             start_date = st.date_input("Start date (first payment month)", key="mtg_start_date")
             principal = st.number_input("Loan balance", min_value=0.0, step=1000.0, key="mtg_principal")
-            home_value = st.number_input(
-                "Home value/Purchase price (for PMI drop-off)",
+
+            purchase_price = st.number_input(
+                "Purchase price (for PMI drop-off)",
                 min_value=0.0,
                 step=5000.0,
                 key="mtg_home_value",
-                help="Used to estimate when PMI can drop off (80% LTV). Set to 0 to disable PMI drop-off logic.",
+                help=(
+                    "We use your original purchase price to estimate when your loan reaches "
+                    "80% loan-to-value (LTV) for PMI removal. Set to 0 to disable PMI drop-off logic."
+                ),
             )
+
             apr = st.number_input(
                 "Interest rate (APR %)",
                 min_value=0.0,
@@ -402,7 +407,7 @@ def render_mortgage_payoff_calculator(user=None):
                         min_value=0.0,
                         step=25.0,
                         key="mtg_pmi",
-                        help="We can estimate when PMI drops off if you enter a home value above.",
+                        help="We can estimate when PMI drops off if you enter a purchase price above.",
                     )
                     hoa = st.number_input(
                         "HOA dues",
@@ -473,12 +478,12 @@ def render_mortgage_payoff_calculator(user=None):
         pmi_v = float(st.session_state.get("mtg_pmi", 0.0) or 0.0)
         hoa_v = float(st.session_state.get("mtg_hoa", 0.0) or 0.0)
 
-        # ---- PMI drop-off detection (80% LTV) ----
+        # ---- PMI drop-off detection (80% LTV based on original purchase price) ----
         pmi_drop_date: Optional[date] = None
         pmi_drop_month_index: Optional[int] = None
 
-        if float(home_value or 0.0) > 0 and pmi_v > 0 and not result.schedule.empty:
-            threshold_balance = float(home_value) * 0.80
+        if float(purchase_price or 0.0) > 0 and pmi_v > 0 and not result.schedule.empty:
+            threshold_balance = float(purchase_price) * 0.80
             for _, row in result.schedule.iterrows():
                 if float(row["Ending Balance"]) <= threshold_balance:
                     pmi_drop_month_index = int(row["Payment #"]) - 1  # 0-based
@@ -517,8 +522,11 @@ def render_mortgage_payoff_calculator(user=None):
                 f"PMI drops off in **{pmi_drop_date.strftime('%B %Y')}**, "
                 f"reducing your monthly housing by **{_money(pmi_v)}**."
             )
-        elif pmi_v > 0 and float(home_value or 0.0) <= 0:
-            st.info("Enter a home value above to estimate when PMI drops off (80% LTV).")
+        elif pmi_v > 0 and float(purchase_price or 0.0) <= 0:
+            st.info(
+                "Enter a purchase price above to estimate when PMI drops off "
+                "(80% LTV based on original value)."
+            )
 
         if payoff_date:
             st.success(f"Estimated payoff date: **{payoff_date.strftime('%B %Y')}**")
